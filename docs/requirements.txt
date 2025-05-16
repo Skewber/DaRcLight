@@ -1,5 +1,5 @@
 sphinx>=8.2.3
 sphinx-rtd-theme>=3.0.2
-sphinx-autodoc-tyehints>=3.2.0
+sphinx-autodoc-typehints>=3.2.0
 numpy>=2.2.5
 astropy>=7.0.2
