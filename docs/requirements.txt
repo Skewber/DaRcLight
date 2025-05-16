@@ -1,0 +1,6 @@
+sphinx
+sphinx-rtd-theme
+os
+numpy
+astropy
+pathlib
