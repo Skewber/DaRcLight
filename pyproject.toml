@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "darclight"
+version = "0.1.0"
+description = "data reduction and analysis pipeline"
+authors = [
+    {name = "Jeremia Neuhold", email = "jeremia.emanuel.neuhold@univie.ac.at"}
+]
+dependencies = [
+    "numpy",
+    "astropy"
+]
+
+[tool.setuptools]
+packages = [darclight"]
