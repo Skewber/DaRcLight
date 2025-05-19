@@ -90,10 +90,10 @@ class DataCollection():
         """Rereads the reduced file directory and recreates the list for each imagetyp.
         """
         files = self.sort_files(self.reduced_path)
-        self.masterbias_files = files[0]
-        self.masterdark_files = files[1]
-        self.masterflat_files = files[2]
-        self.masterlight_files = files[3]
+        self.master_bias_file = files[0][0] if len(files[0])>0 else None
+        self.master_dark_files = files[1] if len(files[0])>0 else None
+        self.master_flat_files = files[2] if len(files[0])>0 else None
+        self.master_light_files = files[3] if len(files[0])>0 else None
 
     @staticmethod
     def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
@@ -104,13 +104,13 @@ class DataCollection():
         :return: the data and header from that file
         :rtype: Tuple[np.ndarray,astropy.io.fits.header.Header]
         """
-        with fits.open(file) as hdul:
+        with fits.open(file) as hdul: # type: ignore
             data = hdul[0].data
             header = hdul[0].header
             return data, header
 
     @staticmethod
-    def safe_file(filename:str, data:np.ndarray, header:fits.header.Header|None=None)->None:
+    def safe_file(filename:str|Path, data:np.ndarray, header:fits.header.Header|None=None)->None:
         """Saves the given data and header with the given filename in the reduced data directory.
 
         :param filename: Desired name for the file
