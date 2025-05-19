@@ -1,138 +1,116 @@
 """Module to manage general information like path to data"""
-import os
+from collections import defaultdict
 from pathlib import Path
-from typing import Iterator, Tuple
+from typing import Generator, Tuple
 import numpy as np
-import astropy
 from astropy.io import fits
 
-class FileList():
-    """Class for handling files that are grouped together in one list
+class DataCollection():
+    """Class that organizes all files in a given directory.
     """
-    def __init__(self, files:list[str]|str=None):
-        if files is None:
-            self.files = []
-        elif isinstance(files, str):
-            self.files = [files]
-        elif isinstance(files, list):
-            self.files = files
-        elif isinstance(files, Path):
-            self.files = [files]
+    def __init__(self, raw_path:str|None=None, reduced_path:str|None=None):
+        # ensure that both paths are an Path object
+        if raw_path is None:
+            self.raw_path = Path('.')
         else:
-            raise ValueError('Invalid argument provided for FileList. ' \
-                            'Use a string or list of strings.')
+            self.raw_path = Path(raw_path)
 
-    def append(self, file:str)->None:
-        """Adds the given file to the filelist
+        if reduced_path is None:
+            self.reduced_path = Path('./reduced')
+        else:
+            self.reduced_path = Path(reduced_path)
+        # create the path if it does not exist
+        self.reduced_path.mkdir(exist_ok=True)
 
-        :param file: path to the file that should be added
-        :type file: str
-        """
-        self.files.append(file)
-
-    def __repr__(self):
-        return str(self.files)
-
-    def __iter__(self):
-        return iter(self.files)
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-        return self.files[idx]
-
-    def data(self, return_fname:bool=False)->Iterator[np.ndarray|Tuple[np.ndarray,str]]:
-        """Iterator that yields one data array at the time for each file in the list
-
-        :param return_fname: whether or not the filename should be returned along with the data, defaults to False
-        :type return_fname: bool, optional
-        :yield: Data (and filename) of the current file
-        :rtype: Iterator[np.ndarray|Tuple[np.nparray,str]]
-        """
-        for f in self.files:
-            yield (fits.getdata(f), f) if return_fname else fits.getdata(f)
-
-    def headers(self, return_fname:bool=False)->Iterator[astropy.io.fits.header.Header|
-                                                         Tuple[astropy.io.fits.header.Header,str]]:
-        """Iterator that yields one header array at the time for each file in the list
-
-        :param return_fname: whether or not the filename should be returned along with the header, defaults to False
-        :type return_fname: bool, optional
-        :yield: Header (and filename) of the current file
-        :rtype: Iterator[np.ndarray|Tuple[np.nparray,str]]
-        """
-        for f in self.files:
-            yield (fits.getheader(f), f) if return_fname else fits.getheader(f)
-
-class Observation():
-    """Class that organizes the individual imagetypes and data paths
-    """
-    def __init__(self, raw_path:str=None, reduced_path:str=None) -> None:
-        self.raw_path = Path(raw_path)
-        self.reduced_path = Path(reduced_path)
-        self.reduced_path.mkdir(exist_ok=True, mode=777)
-        self.bias, self.darks, self.flats, self.lights = self.files_from_header(raw_path)
-        mbias, mdarks, mflats, mlights = self.files_from_header(reduced_path)
-        self.masters = {'bias':mbias[0] if len(mbias)>0 else None,
-                        'dark':mdarks if len(mdarks)>0 else None,
-                        'flat':mflats if len(mflats)>0 else None,
-                        'light':mlights if len(mlights)>0 else None}
+        self.update_raw()
+        self.update_reduced()
 
     @staticmethod
-    def files_from_header(path:Path
-    )->Tuple[FileList,dict[int,FileList],dict[str,FileList],dict[str,FileList]]:
-        """detects the individual images and sorts them according to their header
+    def sort_files(path:str|Path)->Tuple[list,dict,dict,dict]:
+        """Reads all files from a directory and sorts them in seperate lists based on their header.
 
-        :param path: the path where the files are located
-        :type path: Path
-        :return: a FileList object for every found type.
-                Dark frames are sorted in a dictionary with their exposure as key,
-                Flats are sorted into a dictionary according to the used filter and 
-                the light frames according to the object.
-        :rtype: Tuple[FileList,dict[int,FileList],dict[str,FileList],dict[str,FileList]]
+        :param path: Path to the data
+        :type path: str | Path
+        :return: A list of filenames for bias, dark, flat and light frames,
+                the dark frames are a dict with the exposure as key to the filelists,
+                the flat frames are a dict with the used filter as key to the filelists,
+                the light frames are a dict with the target as key to the filelists.
+        :rtype: Tuple[list,dict,dict,dict]
         """
-        path = Path(path)
-        files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-        # TODO: remove non .fits files
+        if isinstance(path, str):
+            path = Path(path)
+        files = [f for f in path.iterdir() if f.is_file()]
+
         common_kwds = {'bias':['bias', 'zero'],
                        'dark':['dark'],
                        'flat':['flat'],
                        'light':['light', 'science', 'object']}
-        bias = FileList()
-        darks = {}     # key = exposure
-        flats = {}     # key = filter
-        lights = {}    # key = object
+
+        # use defaultdicts to reduce the if/elif statements to check if an enty exists
+        bias_files = []
+        dark_files = defaultdict(list)
+        flat_files = defaultdict(list)
+        light_files = defaultdict(list)
+
         for file in files:
-            header_kwd = fits.getval(path/file, 'imagetyp').lower()
+            header_kwd = fits.getval(file, 'imagetyp').lower()
+
             if any([kwd in header_kwd for kwd in common_kwds['bias']]):
-                bias.append(path/file)
+                bias_files.append(file.name)
 
-            elif any([kwd in header_kwd for kwd in common_kwds['dark']]):
-                exp = int(fits.getval(path/file, 'exposure'))
-                if exp in darks:
-                    darks[exp].append(path/file)
-                else:
-                    darks[exp] = FileList(path/file)
+            elif any(kwd in header_kwd for kwd in common_kwds['dark']):
+                exp = int(fits.getval(file, 'exposure'))
+                dark_files[exp].append(file.name)
 
-            elif any([kwd in header_kwd for kwd in common_kwds['flat']]):
-                used_filter = fits.getval(path/file, 'filter')
-                if used_filter in flats:
-                    flats[used_filter].append(path/file)
-                else:
-                    flats[used_filter] = FileList(path/file)
+            elif any(kwd in header_kwd for kwd in common_kwds['flat']):
+                try:
+                    # this value migth not exist always
+                    used_filter = fits.getval(file, 'filter')
+                except KeyError:
+                    used_filter = None
+                flat_files[used_filter].append(file.name)
 
-            elif any([kwd in header_kwd for kwd in common_kwds['light']]):
-                target = fits.getval(path/file, 'object')
-                if target in lights:
-                    lights[target].append(path/file)
-                else:
-                    lights[target] = FileList(path/file)
+            elif any(kwd in header_kwd for kwd in common_kwds['light']):
+                target = fits.getval(file, 'object')
+                light_files[target].append(file.name)
 
-        return bias, darks, flats, lights
+        # convert to normal dicts since we don't need a default value outside this function
+        return bias_files, dict(dark_files), dict(flat_files), dict(light_files)
+
+    def update_raw(self):
+        """Rereads the raw file directory and recreates the list for each imagetyp.
+        """
+        files = self.sort_files(self.raw_path)
+        self.bias_files = files[0]
+        self.dark_files = files[1]
+        self.flat_files = files[2]
+        self.light_files = files[3]
+
+    def update_reduced(self):
+        """Rereads the reduced file directory and recreates the list for each imagetyp.
+        """
+        files = self.sort_files(self.reduced_path)
+        self.masterbias_files = files[0]
+        self.masterdark_files = files[1]
+        self.masterflat_files = files[2]
+        self.masterlight_files = files[3]
 
     @staticmethod
-    def safe_file(filename:str, data:np.ndarray, header:astropy.io.fits.header.Header=None)->None:
+    def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
+        """gives access to the data and header of a given file
+
+        :param file: name of the file
+        :type file: str
+        :return: the data and header from that file
+        :rtype: Tuple[np.ndarray,astropy.io.fits.header.Header]
+        """
+        with fits.open(file) as hdul:
+            data = hdul[0].data
+            header = hdul[0].header
+            return data, header
+
+    @staticmethod
+    def safe_file(filename:str, data:np.ndarray, header:fits.header.Header|None=None)->None:
         """Saves the given data and header with the given filename in the reduced data directory.
 
         :param filename: Desired name for the file
@@ -148,63 +126,75 @@ class Observation():
 
     @property
     def used_filters(self)->list[str]:
-        """Return filters where a flat frame is available.
+        """List of used filters where a flat frame is available.
 
         :return: list of filters
         :rtype: list[str]
         """
-        return list(self.flats.keys())
+        return list(self.flat_files.keys())
 
     @property
     def dark_exposures(self)->list[int]:
-        """Exposure values where a darkframe is directly available.
+        """List of exposure times where a dark frame is directly available.
 
-        :return: list of exposure values
+        :return: list of exposure times
         :rtype: list[int]
         """
-        return list(self.darks.keys())
+        return list(self.dark_files.keys())
+
+    @property
+    def targets(self)->list[str]:
+        """List of targets captured.
+
+        :return: list of targets
+        :rtype: list[str]
+        """
+        return list(self.light_files.keys())
 
     @staticmethod
-    def hdu_from_file(file:str)->Tuple[np.ndarray,astropy.io.fits.header.Header]:
-        """gives access to the data and header of a given file
+    def generator(filelist:list, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+        """generator to get the data and/or header of the files in the provided list.
 
-        :param file: name of the file
-        :type file: str
-        :return: the data and header from that file
-        :rtype: Tuple[np.ndarray,astropy.io.fits.header.Header]
+        :param filelist: list of files to iterate over
+        :type filelist: list
+        :param data: whether or not the data of the file should be returned, defaults to True
+        :type data: bool, optional
+        :param header: whether or not the header should be returned, defaults to False
+        :type header: bool, optional
+        :param fname: whether or not the filename should be returned, defaults to False
+        :type fname: bool, optional
+        :raises ValueError: if both (data and header) are set to False.
+                            If you want only the filenames address the attribute directly.
+        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :rtype: Tuple
         """
-        with fits.open(file) as hdul:
-            data = hdul[0].data
-            header = hdul[0].header
-            return data, header
+        if not data and not header:
+            raise ValueError("At least one of 'data' and 'header' must be True." \
+                             f"You provided: data={data} and header={header}.")
 
-    def master_exists(self, frame:str, used_filter:str=None) -> bool:
-        """checks if a masterframe is registered or if it exists in the reduced data directory.
+        for file in filelist:
+            out = []
+            if data:
+                out.append(fits.getdata(file) if data else None)
+            if header:
+                out.append(fits.getheader(file) if header else None)
+            if fname:
+                out.append(file.name if fname else None)
+            yield tuple(out)
 
-        :param frame: type of frame for which the check sould be performed.
-                    Available options are 'bias', 'dark', 'flat' and 'light'
-        :type frame: str
-        :param used_filter: for which filter the check should be performed,
-                            has to be the same string as in the header, defaults to None
-        :type used_filter: str, optional
-        :return: True if a master exists, False otherwise
-        :rtype: bool
+    def bias(self, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+        """Generator to get the data and/or header of the files in the raw bias frames.
+
+        :param data: whether or not the data of the file should be returned, defaults to True
+        :type data: bool, optional
+        :param header: whether or not the header should be returned, defaults to False
+        :type header: bool, optional
+        :param fname: whether or not the filename should be returned, defaults to False
+        :type fname: bool, optional
+        :raises ValueError: if both (data and header) are set to False.
+                            If you want only the filenames address the attribute directly.
+        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :rtype: Tuple
         """
-        if self.masters[frame] is None:
-            bias, darks, flats, lights = self.files_from_header(self.reduced_path)
-            frames = {'bias':bias if len(bias)>0 else None,
-                      'dark':darks if len(darks)>0 else None,
-                      'flat':flats if len(flats)>0 else None,
-                      'light':lights if len(lights)>0 else None}
-
-            # for flats we need to check every filter individualy
-            if frames[frame] is not None and frame != 'flat':
-                return True
-            elif frames[frame] is not None and frame == 'flat':
-                return used_filter in frames[frame]
-            # masters is None and no frames found
-            return False
-        else:
-            if frame == 'flat':
-                return used_filter in self.masters[frame]
-            return True
+        bias_files = [self.raw_path/f for f in self.bias_files]
+        return self.generator(bias_files, data, header, fname)
