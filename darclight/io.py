@@ -1,4 +1,5 @@
 """Module to manage general information like path to data"""
+from fnmatch import fnmatch
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Tuple
@@ -8,7 +9,7 @@ from astropy.io import fits
 class DataCollection():
     """Class that organizes all files in a given directory.
     """
-    def __init__(self, raw_path:str|None=None, reduced_path:str|None=None):
+    def __init__(self, raw_path:str|None=None, reduced_path:str|None=None, ignore:list|None=None):
         # ensure that both paths are an Path object
         if raw_path is None:
             self.raw_path = Path('.')
@@ -22,11 +23,12 @@ class DataCollection():
         # create the path if it does not exist
         self.reduced_path.mkdir(exist_ok=True)
 
+        self.ignore = [] if ignore is None else ignore
         self.update_raw()
         self.update_reduced()
 
     @staticmethod
-    def sort_files(path:str|Path)->Tuple[list,dict,dict,dict]:
+    def sort_files(path:str|Path, ignore:list|None=None)->Tuple[list,dict,dict,dict]:
         """Reads all files from a directory and sorts them in seperate lists based on their header.
 
         :param path: Path to the data
@@ -37,9 +39,11 @@ class DataCollection():
                 the light frames are a dict with the target as key to the filelists.
         :rtype: Tuple[list,dict,dict,dict]
         """
+        ignore = [] if ignore is None else ignore
         if isinstance(path, str):
             path = Path(path)
-        files = [f for f in path.iterdir() if f.is_file()]
+        files = [f for f in path.iterdir()
+                 if f.is_file() and not any(fnmatch(f.name, pat) for pat in ignore)]
 
         common_kwds = {'bias':['bias', 'zero'],
                        'dark':['dark'],
@@ -80,7 +84,7 @@ class DataCollection():
     def update_raw(self):
         """Rereads the raw file directory and recreates the list for each imagetyp.
         """
-        files = self.sort_files(self.raw_path)
+        files = self.sort_files(self.raw_path, self.ignore)
         self.bias_files = files[0]
         self.dark_files = files[1]
         self.flat_files = files[2]
@@ -89,11 +93,21 @@ class DataCollection():
     def update_reduced(self):
         """Rereads the reduced file directory and recreates the list for each imagetyp.
         """
-        files = self.sort_files(self.reduced_path)
-        self.master_bias_file = files[0][0] if len(files[0])>0 else None
-        self.master_dark_files = files[1] if len(files[0])>0 else None
-        self.master_flat_files = files[2] if len(files[0])>0 else None
-        self.master_light_files = files[3] if len(files[0])>0 else None
+        bias, darks, flats, lights = self.sort_files(self.reduced_path, self.ignore)
+        self.master_bias_file = bias[0] if len(bias)>0 else None
+        def validate(frames:dict, imgtype:str):
+            validated = {}
+            for key, file in frames.items():
+                if len(file) == 0:
+                    validated[key] = None
+                elif len(file) == 1:
+                    validated[key] = file[0]
+                else:
+                    raise ValueError(f"More than one master {imgtype} is detected for {key}.")
+            return validated
+        self.master_dark_files = {exp:None for exp in self.dark_exposures} | validate(darks, 'dark')
+        self.master_flat_files = {filt:None for filt in self.used_filters} | validate(flats, 'flat')
+        self.master_light_files = {tar:None for tar in self.targets} | validate(lights, 'light')
 
     @staticmethod
     def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
@@ -180,7 +194,7 @@ class DataCollection():
                 out.append(fits.getheader(file) if header else None)
             if fname:
                 out.append(file.name if fname else None)
-            yield tuple(out)
+            yield tuple(out) if len(out)>1 else out[0]
 
     def bias(self, data:bool=True, header:bool=False, fname:bool=False)->Generator:
         """Generator to get the data and/or header of the files in the raw bias frames.
@@ -198,3 +212,27 @@ class DataCollection():
         """
         bias_files = [self.raw_path/f for f in self.bias_files]
         return self.generator(bias_files, data, header, fname)
+
+    def darks(self, exposure:int, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+        """Generator to get the data and/or header of the files of the raw dark frames
+          for a specific exposure.
+
+        :param exposure: the exposure time of the dark frame
+        :type exposure: int
+        :param data: whether or not the data of the file should be returned, defaults to True
+        :type data: bool, optional
+        :param header: whether or not the header should be returned, defaults to False
+        :type header: bool, optional
+        :param fname: whether or not the filename should be returned, defaults to False
+        :type fname: bool, optional
+        :raises ValueError: This error is raised if there is no dark frame with the given exposure
+                            registered. Try 'update_raw()' if you think there should be one
+        :raises ValueError: if both (data and header) are set to False.
+                            If you want only the filenames address the attribute directly.
+        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :rtype: Tuple
+        """
+        if exposure not in self.dark_exposures:
+            raise ValueError("There is no dark frame for this exposure available")
+        dark_files = [self.raw_path/f for f in self.dark_files[exposure]]
+        return self.generator(dark_files, data, header, fname)

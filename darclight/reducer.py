@@ -1,4 +1,5 @@
 """This module provides tools for data reduction"""
+from tkinter import W
 import numpy as np
 from astropy.stats import sigma_clip
 from darclight.io import DataCollection
@@ -9,9 +10,9 @@ class Reducer():
     def __init__(self, data:DataCollection):
         self.data = data
         self.master_bias = None
-        self.master_darks = None
-        self.master_flats = None
-        self.master_lights = None
+        self.master_darks:dict[int,np.ndarray|None] = {exp:None for exp in self.data.dark_exposures}
+        self.master_flats:dict[str,np.ndarray|None] = {filt:None for filt in self.data.used_filters}
+        self.master_lights:dict[str,np.ndarray|None] = {tar:None for tar in self.data.targets}
 
     @staticmethod
     def combine(data:list[np.ndarray], method:str='mean', sigmaclip:bool=True, sigma:int=5)->np.ndarray:
@@ -30,18 +31,23 @@ class Reducer():
         :return: returns the combined data array
         :rtype: np.ndarray
         """
+        if len(data) == 1:
+            print("WARNING: only one file in the list!")
+            return data[0]
+
         stack = np.stack(data)
+        print(stack.shape)
         if sigmaclip:
             stack = sigma_clip(stack, sigma=sigma, axis=0)
         match method:
             case 'mean':
-                return np.mean(stack, axis=0) # type: ignore
+                return np.array(np.mean(stack, axis=0)) # type: ignore
 
             case 'median':
-                return np.median(stack, axis=0) # type: ignore
+                return np.array(np.median(stack, axis=0)) # type: ignore
 
             case 'add':
-                return np.sum(stack, axis=0) # type: ignore
+                return np.array(np.sum(stack, axis=0)) # type: ignore
 
             case _:
                 raise ValueError("You provided an invalid argument for the combination method.")
@@ -74,37 +80,74 @@ class Reducer():
         file_name = f"{file_name}.fits".replace(" ", "_")
         return file_name
 
-    def create_master_bias(self, force_new:bool=False, method:str='mean')->np.ndarray:
+    def create_master_bias(self, force_new:bool=False, method:str='mean', **kwargs)->np.ndarray:
         """Creates a master bias by combining the registered files if it
         does not exist yet and saves it.
 
         :param force_new: whether or not a new master file should be forced, defaults to False
         :type force_new: bool, optional
-        :param method: method used for combination. Check Reducer.combine for more detail, defaults to 'mean'
+        :param method: method used for combination. Check Reducer.combine for more detail,
+                        defaults to 'mean'
         :type method: str, optional
+        :param kwargs: additional keyword arguments passed to 'combine'
         :return: the combined data
         :rtype: np.ndarray
         """
         # check if master bias exists
         if self.master_bias is not None and not force_new:
+        # there is no master created yet and don't force a new one
             return self.master_bias
+
 
         if force_new or self.data.master_bias_file is None:
             # collect data
-            biases = [d for d in self.data.bias()]
+            biases = [b for b in self.data.bias()]
             _, header = self.data.hdu_from_file(self.data.raw_path/self.data.bias_files[0])
             # update header
-            header['combined'] = True
-            header['ncombine'] = len(biases)
-            # stack the frames
-            master = self.combine(biases, method=method)
-            # save master
+            header['COMBINED'] = True
+            header['NCOMBINE'] = len(biases)
+            # stack the frames and save
+            master = self.combine(biases, method=method, **kwargs)
             file_name = self.generate_filename('bias')
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
             # update the masters
             self.data.master_bias_file = file_name
             self.master_bias = master
         else:
-            self.master_bias = self.data.hdu_from_file(self.data.reduced_path/self.data.master_bias_file)[0]
+            data, _ = self.data.hdu_from_file(self.data.reduced_path/self.data.master_bias_file)
+            self.master_bias = data
 
         return self.master_bias
+
+    def create_master_dark(self, exposure:int=-1, force_new:bool=False,
+                           method:str='mean', **kwargs)->np.ndarray|None:
+        # create a master frame for every exposure
+        if exposure == -1:
+            for exp in self.data.dark_exposures:
+                self.create_master_dark(exp, force_new, method, **kwargs)
+            return None
+
+        # check if master dark exists
+        if self.master_darks[exposure] is not None and not force_new:
+            return self.master_darks[exposure]
+
+        if force_new or self.data.master_dark_files[exposure] is None:
+            # collect data
+            darks = [d for d in self.data.darks(exposure)]
+            _, header = self.data.hdu_from_file(self.data.raw_path/self.data.dark_files[exposure][0])
+            # update the header
+            header['COMBINED'] = True
+            header['NCOMBINE'] = len(darks)
+            # stack the frames and save
+            master = self.combine(darks, method=method, **kwargs)
+            file_name = self.generate_filename('dark', exposure=str(exposure))
+            self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            # update the masters
+            self.data.master_dark_files[exposure] = file_name # type: ignore
+            self.master_darks[exposure] = master
+        else:
+            path = self.data.reduced_path / self.data.master_dark_files[exposure] # type: ignore
+            data, _ = self.data.hdu_from_file(path)
+            self.master_darks[exposure] = data
+
+        return self.master_darks[exposure]
