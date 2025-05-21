@@ -84,11 +84,11 @@ class DataCollection():
     def update_raw(self):
         """Rereads the raw file directory and recreates the list for each imagetyp.
         """
-        files = self.sort_files(self.raw_path, self.ignore)
-        self.bias_files = files[0]
-        self.dark_files = files[1]
-        self.flat_files = files[2]
-        self.light_files = files[3]
+        bias, darks, flats, lights = self.sort_files(self.raw_path, self.ignore)
+        self.bias_files = bias
+        self.dark_files = darks
+        self.flat_files = flats
+        self.light_files = lights
 
     def update_reduced(self):
         """Rereads the reduced file directory and recreates the list for each imagetyp.
@@ -157,6 +157,21 @@ class DataCollection():
         return list(self.dark_files.keys())
 
     @property
+    def flat_exposures(self)->dict[str|None,set]:
+        """exposure times for each filter
+
+        :return: dictionary of the form {filter:exposure, ...}
+        :rtype: dict[str|None,set]
+        """
+        result = defaultdict(set)
+
+        for filt, files in self.flat_files.items():
+            for fname in files:
+                exp = fits.getval(self.raw_path/fname, "EXPOSURE")
+                result[filt].add(int(exp))
+        return dict(result)
+
+    @property
     def targets(self)->list[str]:
         """List of targets captured.
 
@@ -165,8 +180,29 @@ class DataCollection():
         """
         return list(self.light_files.keys())
 
+    @property
+    def light_meta(self)->dict[str,set[Tuple[str, int]]]:
+        """Metadata for the light frames
+
+        :return: dictionary of the form {target:[(filter,exposure),...],...},
+                for every target there is a set of tuples that each contain the filter and
+                the corresponding exposure time.
+        :rtype: dict[str,set[Tuple[str, int]]]
+        """
+        result = defaultdict(set)
+
+        for target, files in self.light_files.items():
+            for fname in files:
+                header = fits.getheader(self.raw_path/fname)
+                filt = header.get("FILTER")
+                exp = header.get("EXPOSURE")
+                if exp is not None:
+                    result[target].add((filt, int(exp)))
+        return dict(result)
+
+
     @staticmethod
-    def generator(filelist:list, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+    def generator(filelist:list, data:bool=True, header:bool=False, fname:bool=False, return_kwds:list[str]|None=None, **keywords)->Generator:
         """generator to get the data and/or header of the files in the provided list.
 
         :param filelist: list of files to iterate over
@@ -177,26 +213,41 @@ class DataCollection():
         :type header: bool, optional
         :param fname: whether or not the filename should be returned, defaults to False
         :type fname: bool, optional
+        :param return_kwds: additional keywords that should be returned alongside the data/header,
+        defaults to None
+        :type return_kwds: list[str] | None
+        :param keywords: additional keywords that should be extracted from the header
         :raises ValueError: if both (data and header) are set to False.
                             If you want only the filenames address the attribute directly.
-        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :yield: tuple of the desired outputs in the order (data, header, filename, return_kwd 1,...)
         :rtype: Tuple
         """
         if not data and not header:
             raise ValueError("At least one of 'data' and 'header' must be True." \
                              f"You provided: data={data} and header={header}.")
 
+        return_kwd = [] if return_kwds is None else return_kwds
+        kwds = []
         for file in filelist:
             out = []
+            if keywords or return_kwd:
+                hdr = fits.getheader(file)
+                if any(hdr.get(kwd) != val for kwd, val in keywords.items()):
+                    # skip if the keywords do not match
+                    continue
+                for kwd in return_kwd:
+                    kwds.append(hdr.get(kwd))
+
             if data:
                 out.append(fits.getdata(file) if data else None)
             if header:
                 out.append(fits.getheader(file) if header else None)
             if fname:
                 out.append(file.name if fname else None)
+            out = out + kwds    # add the desired keywords to the end
             yield tuple(out) if len(out)>1 else out[0]
 
-    def bias(self, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+    def bias(self, data:bool=True, header:bool=False, fname:bool=False, **keywords)->Generator:
         """Generator to get the data and/or header of the files in the raw bias frames.
 
         :param data: whether or not the data of the file should be returned, defaults to True
@@ -211,9 +262,9 @@ class DataCollection():
         :rtype: Tuple
         """
         bias_files = [self.raw_path/f for f in self.bias_files]
-        return self.generator(bias_files, data, header, fname)
+        return self.generator(bias_files, data, header, fname, **keywords)
 
-    def darks(self, exposure:int, data:bool=True, header:bool=False, fname:bool=False)->Generator:
+    def darks(self, exposure:int, data:bool=True, header:bool=False, fname:bool=False, **keywords)->Generator:
         """Generator to get the data and/or header of the files of the raw dark frames
           for a specific exposure.
 
@@ -233,6 +284,31 @@ class DataCollection():
         :rtype: Tuple
         """
         if exposure not in self.dark_exposures:
-            raise ValueError("There is no dark frame for this exposure available")
+            raise ValueError(f"There is no dark frame for this exposure: {exposure}")
         dark_files = [self.raw_path/f for f in self.dark_files[exposure]]
-        return self.generator(dark_files, data, header, fname)
+        return self.generator(dark_files, data, header, fname, **keywords)
+
+    def flats(self, used_filter:str|None, data:bool=True, header:bool=False, fname:bool=False,
+              return_kwds:list[str]|None=None, **keywords):
+        """Generator to get the data and/or header of the files of the raw dark frames
+          for a specific exposure.
+
+        :param exposure: the exposure time of the dark frame
+        :type exposure: int
+        :param data: whether or not the data of the file should be returned, defaults to True
+        :type data: bool, optional
+        :param header: whether or not the header should be returned, defaults to False
+        :type header: bool, optional
+        :param fname: whether or not the filename should be returned, defaults to False
+        :type fname: bool, optional
+        :raises ValueError: This error is raised if there is no dark frame with the given exposure
+                            registered. Try 'update_raw()' if you think there should be one
+        :raises ValueError: if both (data and header) are set to False.
+                            If you want only the filenames address the attribute directly.
+        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :rtype: Tuple
+        """
+        if used_filter not in self.used_filters:
+            raise ValueError(f"There is no flat frame for this filter: {used_filter}")
+        flat_files = [self.raw_path/f for f in self.flat_files[used_filter]]
+        return self.generator(flat_files, data, header, fname, return_kwds, **keywords)
