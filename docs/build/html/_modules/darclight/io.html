@@ -71,6 +71,7 @@
   <h1>Source code for darclight.io</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Module to manage general information like path to data&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">fnmatch</span> <span class="kn">import</span> <span class="n">fnmatch</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Tuple</span>
@@ -162,11 +163,11 @@
     <span class="k">def</span> <span class="nf">update_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Rereads the raw file directory and recreates the list for each imagetyp.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_files</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span></div>
+        <span class="n">bias</span><span class="p">,</span> <span class="n">darks</span><span class="p">,</span> <span class="n">flats</span><span class="p">,</span> <span class="n">lights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias_files</span> <span class="o">=</span> <span class="n">bias</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span> <span class="o">=</span> <span class="n">darks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span> <span class="o">=</span> <span class="n">flats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span> <span class="o">=</span> <span class="n">lights</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.update_reduced">
@@ -188,7 +189,9 @@
             <span class="k">return</span> <span class="n">validated</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">master_dark_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">exp</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">}</span> <span class="o">|</span> <span class="n">validate</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span> <span class="s1">&#39;dark&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">master_flat_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">filt</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">filt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_filters</span><span class="p">}</span> <span class="o">|</span> <span class="n">validate</span><span class="p">(</span><span class="n">flats</span><span class="p">,</span> <span class="s1">&#39;flat&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">master_light_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">tar</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">tar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">}</span> <span class="o">|</span> <span class="n">validate</span><span class="p">(</span><span class="n">lights</span><span class="p">,</span> <span class="s1">&#39;light&#39;</span><span class="p">)</span></div>
+        <span class="c1"># skip validation for lights since they are usually stacked seperately</span>
+        <span class="c1"># =&gt; normally more than one</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">master_light_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">tar</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">tar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">}</span> <span class="o">|</span> <span class="n">lights</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.hdu_from_file">
@@ -244,6 +247,21 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">flat_exposures</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">,</span><span class="nb">set</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;exposure times for each filter</span>
+
+<span class="sd">        :return: dictionary of the form {filter:exposure, ...}</span>
+<span class="sd">        :rtype: dict[str|None,set]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">filt</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;EXPOSURE&quot;</span><span class="p">)</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">filt</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">targets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;List of targets captured.</span>
@@ -253,10 +271,31 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">light_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">set</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Metadata for the light frames</span>
+
+<span class="sd">        :return: dictionary of the form {target:[(filter,exposure),...],...},</span>
+<span class="sd">                for every target there is a set of tuples that each contain the filter and</span>
+<span class="sd">                the corresponding exposure time.</span>
+<span class="sd">        :rtype: dict[str,set[Tuple[str, int]]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">fname</span><span class="p">)</span>
+                <span class="n">filt</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;FILTER&quot;</span><span class="p">)</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;EXPOSURE&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">exp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">filt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
 <div class="viewcode-block" id="DataCollection.generator">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.generator">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">filelist</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">filelist</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;generator to get the data and/or header of the files in the provided list.</span>
 
 <span class="sd">        :param filelist: list of files to iterate over</span>
@@ -267,29 +306,44 @@
 <span class="sd">        :type header: bool, optional</span>
 <span class="sd">        :param fname: whether or not the filename should be returned, defaults to False</span>
 <span class="sd">        :type fname: bool, optional</span>
+<span class="sd">        :param return_kwds: additional keywords that should be returned alongside the data/header,</span>
+<span class="sd">                            defaults to None</span>
+<span class="sd">        :type return_kwds: list[str] | None</span>
+<span class="sd">        :param keywords: additional keywords that should be extracted from the header</span>
 <span class="sd">        :raises ValueError: if both (data and header) are set to False.</span>
 <span class="sd">                            If you want only the filenames address the attribute directly.</span>
-<span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename)</span>
+<span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename, return_kwd 1,...)</span>
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">header</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one of &#39;data&#39; and &#39;header&#39; must be True.&quot;</span> \
                              <span class="sa">f</span><span class="s2">&quot;You provided: data=</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> and header=</span><span class="si">{</span><span class="n">header</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
+        <span class="n">return_kwd</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">return_kwds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">return_kwds</span>
+        <span class="n">kwds</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">filelist</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">keywords</span> <span class="ow">or</span> <span class="n">return_kwd</span><span class="p">:</span>
+                <span class="n">hdr</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kwd</span><span class="p">)</span> <span class="o">!=</span> <span class="n">val</span> <span class="k">for</span> <span class="n">kwd</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">keywords</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="c1"># skip if the keywords do not match</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">return_kwd</span><span class="p">:</span>
+                    <span class="n">kwds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kwd</span><span class="p">))</span>
+
             <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">header</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">if</span> <span class="n">header</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fname</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">fname</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">kwds</span>    <span class="c1"># add the desired keywords to the end</span>
             <span class="k">yield</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="k">else</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.bias">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.bias">[docs]</a>
-    <span class="k">def</span> <span class="nf">bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files in the raw bias frames.</span>
 
 <span class="sd">        :param data: whether or not the data of the file should be returned, defaults to True</span>
@@ -304,12 +358,12 @@
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">bias_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_files</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">bias_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">bias_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.darks">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.darks">[docs]</a>
-    <span class="k">def</span> <span class="nf">darks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exposure</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">darks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exposure</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw dark frames</span>
 <span class="sd">          for a specific exposure.</span>
 
@@ -329,9 +383,65 @@
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">exposure</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is no dark frame for this exposure available&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no dark frame for this exposure: </span><span class="si">{</span><span class="n">exposure</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">dark_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span><span class="p">[</span><span class="n">exposure</span><span class="p">]]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">dark_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">dark_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataCollection.flats">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.flats">[docs]</a>
+    <span class="k">def</span> <span class="nf">flats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">used_filter</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw flat frames</span>
+<span class="sd">          for a specific filter.</span>
+
+<span class="sd">        :param used_filter: the exposure time of the flat frame</span>
+<span class="sd">        :type used_filter: str | None</span>
+<span class="sd">        :param data: whether or not the data of the file should be returned, defaults to True</span>
+<span class="sd">        :type data: bool, optional</span>
+<span class="sd">        :param header: whether or not the header should be returned, defaults to False</span>
+<span class="sd">        :type header: bool, optional</span>
+<span class="sd">        :param fname: whether or not the filename should be returned, defaults to False</span>
+<span class="sd">        :type fname: bool, optional</span>
+<span class="sd">        :raises ValueError: This error is raised if there is no flat frame with the given filter</span>
+<span class="sd">                            registered. Try &#39;update_raw()&#39; if you think there should be one</span>
+<span class="sd">        :raises ValueError: if both (data and header) are set to False.</span>
+<span class="sd">                            If you want only the filenames address the attribute directly.</span>
+<span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename)</span>
+<span class="sd">        :rtype: Tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">used_filter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_filters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no flat frame for this filter: </span><span class="si">{</span><span class="n">used_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">flat_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span><span class="p">[</span><span class="n">used_filter</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">flat_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataCollection.lights">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.lights">[docs]</a>
+    <span class="k">def</span> <span class="nf">lights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw light frames</span>
+<span class="sd">          for a specific target.</span>
+
+<span class="sd">        :param target: the target of the light frame</span>
+<span class="sd">        :type target: str</span>
+<span class="sd">        :param data: whether or not the data of the file should be returned, defaults to True</span>
+<span class="sd">        :type data: bool, optional</span>
+<span class="sd">        :param header: whether or not the header should be returned, defaults to False</span>
+<span class="sd">        :type header: bool, optional</span>
+<span class="sd">        :param fname: whether or not the filename should be returned, defaults to False</span>
+<span class="sd">        :type fname: bool, optional</span>
+<span class="sd">        :raises ValueError: This error is raised if there is no light frame with the given target</span>
+<span class="sd">                            registered. Try &#39;update_raw()&#39; if you think there should be one</span>
+<span class="sd">        :raises ValueError: if both (data and header) are set to False.</span>
+<span class="sd">                            If you want only the filenames address the attribute directly.</span>
+<span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename)</span>
+<span class="sd">        :rtype: Tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no light frame for the given target: </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">light_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="p">[</span><span class="n">target</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">light_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

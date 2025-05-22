@@ -50,9 +50,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.combine"><code class="docutils literal notranslate"><span class="pre">Reducer.combine()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.create_master_bias"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_bias()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.create_master_dark"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_dark()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.create_master_flats"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_flats()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.generate_filename"><code class="docutils literal notranslate"><span class="pre">Reducer.generate_filename()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.reducer.Reducer.reduce_lights"><code class="docutils literal notranslate"><span class="pre">Reducer.reduce_lights()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#darclight.reducer.inv_median"><code class="docutils literal notranslate"><span class="pre">inv_median()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -142,9 +145,54 @@ defaults to ‘mean’</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="darclight.reducer.Reducer.create_master_dark">
 <span class="sig-name descname"><span class="pre">create_master_dark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exposure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_new</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/reducer.html#Reducer.create_master_dark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.reducer.Reducer.create_master_dark" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Creates master darks by combining the registered files if they
+do not exist yet and saves them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exposure</strong> (<em>int</em><em>, </em><em>optional</em>) – the exposure time for which the master dark should be created
+a time of -1 means that for every exposure registered the function is
+called recursevly, defaults to -1</p></li>
+<li><p><strong>force_new</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not a new master file should be forced, defaults to False</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – method used for combination. Check Reducer.combine for more detail,
+defaults to ‘mean’</p></li>
+<li><p><strong>kwargs</strong> – additional keyword arguments passed to ‘combine’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the combined data or None if the exposure time is set to -1</p>
+</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+<dd class="field-odd"><p>np.ndarray | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="darclight.reducer.Reducer.create_master_flats">
+<span class="sig-name descname"><span class="pre">create_master_flats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">used_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_new</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/reducer.html#Reducer.create_master_flats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.reducer.Reducer.create_master_flats" title="Link to this definition"></a></dt>
+<dd><p>Creates master flats by combining the registered files if they
+do not exist yet and saves them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>used_filter</strong> (<em>str</em><em>, </em><em>optional</em>) – the filter for which the master flat should be created
+a value of ‘all’ means that for every filter registered, the function is
+called recursevly, defaults to ‘all’</p></li>
+<li><p><strong>norm</strong> (<em>Callable</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – function used to normalize each frame,
+should take a 2d array as input and return the normalized array,
+defaults to None</p></li>
+<li><p><strong>force_new</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not a new master file should be forced, defaults to False</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – method used for combination. Check Reducer.combine for more detail,
+defaults to ‘mean’</p></li>
+<li><p><strong>kwargs</strong> – additional keyword arguments passed to ‘combine’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the combined data or None if the used_filter is set to ‘all’</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -172,6 +220,50 @@ The name follows the following pattern: ‘master_&lt;frame&gt;_&lt;obj&gt;_&lt;
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="darclight.reducer.Reducer.reduce_lights">
+<span class="sig-name descname"><span class="pre">reduce_lights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_new</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/reducer.html#Reducer.reduce_lights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.reducer.Reducer.reduce_lights" title="Link to this definition"></a></dt>
+<dd><p>creates reduced light frames and saves them individually for later stacking/analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>str</em><em>, </em><em>optional</em>) – the object for which the frames should be calibrated,
+a value of ‘all’ means that the functioin is called recursevly for ever registered target,
+defaults to ‘all’</p></li>
+<li><p><strong>force_new</strong> (<em>bool</em><em>, </em><em>optional</em>) – wherther or not the frames should be overwritten if they exist,
+defaults to False</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – method used for stacking, only used if there are certain calibration
+frames (bias, dark, flat) missing,
+defaults to ‘mean’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – raised if force_new=False and a file with the same name exists 
+in the reduced data directory</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="darclight.reducer.inv_median">
+<span class="sig-prename descclassname"><span class="pre">darclight.reducer.</span></span><span class="sig-name descname"><span class="pre">inv_median</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/reducer.html#inv_median"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.reducer.inv_median" title="Link to this definition"></a></dt>
+<dd><p>Function to normalize data by division of the median</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>np.ndarray</em>) – data that should be normalized</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>normalized data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

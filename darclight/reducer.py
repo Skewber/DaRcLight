@@ -1,7 +1,18 @@
 """This module provides tools for data reduction"""
+from typing import Callable
 import numpy as np
 from astropy.stats import sigma_clip
 from darclight.io import DataCollection
+
+def inv_median(data:np.ndarray)->np.ndarray:
+    """Function to normalize data by division of the median
+
+    :param data: data that should be normalized
+    :type data: np.ndarray
+    :return: normalized data
+    :rtype: np.ndarray
+    """
+    return data / np.median(data)
 
 class Reducer():
     """Class for general reduction and correction of the provided data
@@ -172,7 +183,7 @@ class Reducer():
 
         return self.master_darks[exposure]
 
-    def create_master_flats(self, used_filter:str|None='all',
+    def create_master_flats(self, used_filter:str|None='all', norm:Callable|None=None,
                             force_new:bool=False, method='mean', **kwargs)->np.ndarray|None:
         """Creates master flats by combining the registered files if they
         do not exist yet and saves them.
@@ -181,6 +192,10 @@ class Reducer():
                         a value of 'all' means that for every filter registered, the function is
                         called recursevly, defaults to 'all'
         :type used_filter: str, optional
+        :param norm: function used to normalize each frame,
+                    should take a 2d array as input and return the normalized array,
+                    defaults to None
+        :type norm: Callable | None, optional
         :param force_new: whether or not a new master file should be forced, defaults to False
         :type force_new: bool, optional
         :param method: method used for combination. Check Reducer.combine for more detail,
@@ -193,7 +208,7 @@ class Reducer():
         # execute the function for every filter
         if used_filter == 'all':
             for filt in self.data.used_filters:
-                self.create_master_flats(filt, force_new, method, **kwargs)
+                self.create_master_flats(filt, norm, force_new, method, **kwargs)
             return None
 
         # check if a master flat is loaded
@@ -225,6 +240,8 @@ class Reducer():
             header['NCOMBINE'] = len(flats)
             # stack the frames and save
             master = self.combine(flats, method=method, **kwargs)
+            if norm is not None:
+                master = norm(master)
             file_name = self.generate_filename('flat', filt=used_filter)
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
             # update the masters
@@ -232,3 +249,68 @@ class Reducer():
             self.master_flats[used_filter] = master
 
         return self.master_flats[used_filter]
+
+    def reduce_lights(self, target:str='all', force_new:bool=False,
+                      method='mean', **kwargs)->None:
+        """creates reduced light frames and saves them individually for later stacking/analysis
+
+        :param target: the object for which the frames should be calibrated,
+                    a value of 'all' means that the functioin is called recursevly for ever registered target,
+                    defaults to 'all'
+        :type target: str, optional
+        :param force_new: wherther or not the frames should be overwritten if they exist,
+                        defaults to False
+        :type force_new: bool, optional
+        :param method: method used for stacking, only used if there are certain calibration
+                    frames (bias, dark, flat) missing,
+                    defaults to 'mean'
+        :type method: str, optional
+        :raises RuntimeError: raised if force_new=False and a file with the same name exists 
+                            in the reduced data directory
+        :rtype: None
+        """
+        if target == 'all':
+            for tar in self.data.light_meta:
+                self.reduce_lights(tar, force_new, method, **kwargs)
+            return None
+
+        self.data.update_reduced()
+
+        if not force_new:
+        # check if reduced lights exist
+            for file in self.data.light_files[target]:
+                if self.data.master_light_files[target] is None:
+                    break
+                if file in self.data.master_light_files[target]:
+                    raise RuntimeError(f"The file '{file}' is already registered in the reducd data direcory."\
+                                    "Use force_new=True if you want to verwrite")
+
+        # if this point is reached not file conflicts with the reduced data
+        # collect data
+        meta = self.data.light_meta[target]
+        print(meta)
+        for filt, expo in meta:
+            lights, hdrs, fnames = zip(*self.data.lights(target, header=True, fname=True, filter=filt, exposure=expo))
+            lights = list(lights)
+            _, header = self.data.hdu_from_file(self.data.raw_path/fnames[0])
+            # correction
+            mbias = self.create_master_bias(method=method, **kwargs) if self.master_bias is None else self.master_bias
+            # find best dark and scale
+            target_time = int(header.get('EXPOSURE'))    # type: ignore
+            exposures = self.data.dark_exposures
+            idx = np.searchsorted(sorted(exposures), target_time, side='left')
+            best_time = exposures[idx] if idx<len(exposures) else exposures[idx-1]
+            mdark = self.master_darks[best_time]
+            mdark = mdark if mdark is not None else self.create_master_dark(best_time)
+            mdark = self.master_darks[best_time] * target_time / best_time   # type:ignore
+
+            used_filter = str(header.get('FILTER'))
+            if self.master_flats[used_filter] is None:
+                mflat = self.create_master_flats(method=method, **kwargs)
+            else:
+                mflat = self.master_flats[used_filter]
+
+            lights = [(l-mbias-mdark)/mflat for l in lights]
+            for data, hdr, fname in zip(lights, hdrs, fnames):
+                self.data.safe_file(self.data.reduced_path/fname, data, hdr)
+        self.data.update_reduced()

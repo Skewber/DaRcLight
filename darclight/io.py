@@ -1,5 +1,6 @@
 """Module to manage general information like path to data"""
 from fnmatch import fnmatch
+from functools import cached_property
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Tuple
@@ -107,7 +108,9 @@ class DataCollection():
             return validated
         self.master_dark_files = {exp:None for exp in self.dark_exposures} | validate(darks, 'dark')
         self.master_flat_files = {filt:None for filt in self.used_filters} | validate(flats, 'flat')
-        self.master_light_files = {tar:None for tar in self.targets} | validate(lights, 'light')
+        # skip validation for lights since they are usually stacked seperately
+        # => normally more than one
+        self.master_light_files = {tar:None for tar in self.targets} | lights
 
     @staticmethod
     def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
@@ -156,7 +159,7 @@ class DataCollection():
         """
         return list(self.dark_files.keys())
 
-    @property
+    @cached_property
     def flat_exposures(self)->dict[str|None,set]:
         """exposure times for each filter
 
@@ -180,7 +183,7 @@ class DataCollection():
         """
         return list(self.light_files.keys())
 
-    @property
+    @cached_property
     def light_meta(self)->dict[str,set[Tuple[str, int]]]:
         """Metadata for the light frames
 
@@ -200,9 +203,9 @@ class DataCollection():
                     result[target].add((filt, int(exp)))
         return dict(result)
 
-
     @staticmethod
-    def generator(filelist:list, data:bool=True, header:bool=False, fname:bool=False, return_kwds:list[str]|None=None, **keywords)->Generator:
+    def generator(filelist:list, data:bool=True, header:bool=False,
+                  fname:bool=False, return_kwds:list[str]|None=None, **keywords)->Generator:
         """generator to get the data and/or header of the files in the provided list.
 
         :param filelist: list of files to iterate over
@@ -214,7 +217,7 @@ class DataCollection():
         :param fname: whether or not the filename should be returned, defaults to False
         :type fname: bool, optional
         :param return_kwds: additional keywords that should be returned alongside the data/header,
-        defaults to None
+                            defaults to None
         :type return_kwds: list[str] | None
         :param keywords: additional keywords that should be extracted from the header
         :raises ValueError: if both (data and header) are set to False.
@@ -289,19 +292,19 @@ class DataCollection():
         return self.generator(dark_files, data, header, fname, **keywords)
 
     def flats(self, used_filter:str|None, data:bool=True, header:bool=False, fname:bool=False,
-              return_kwds:list[str]|None=None, **keywords):
-        """Generator to get the data and/or header of the files of the raw dark frames
-          for a specific exposure.
+              return_kwds:list[str]|None=None, **keywords)->Generator:
+        """Generator to get the data and/or header of the files of the raw flat frames
+          for a specific filter.
 
-        :param exposure: the exposure time of the dark frame
-        :type exposure: int
+        :param used_filter: the exposure time of the flat frame
+        :type used_filter: str | None
         :param data: whether or not the data of the file should be returned, defaults to True
         :type data: bool, optional
         :param header: whether or not the header should be returned, defaults to False
         :type header: bool, optional
         :param fname: whether or not the filename should be returned, defaults to False
         :type fname: bool, optional
-        :raises ValueError: This error is raised if there is no dark frame with the given exposure
+        :raises ValueError: This error is raised if there is no flat frame with the given filter
                             registered. Try 'update_raw()' if you think there should be one
         :raises ValueError: if both (data and header) are set to False.
                             If you want only the filenames address the attribute directly.
@@ -312,3 +315,28 @@ class DataCollection():
             raise ValueError(f"There is no flat frame for this filter: {used_filter}")
         flat_files = [self.raw_path/f for f in self.flat_files[used_filter]]
         return self.generator(flat_files, data, header, fname, return_kwds, **keywords)
+
+    def lights(self, target:str, data:bool=True, header:bool=False, fname:bool=False,
+               return_kwds:list[str]|None=None, **keywords)->Generator:
+        """Generator to get the data and/or header of the files of the raw light frames
+          for a specific target.
+
+        :param target: the target of the light frame
+        :type target: str
+        :param data: whether or not the data of the file should be returned, defaults to True
+        :type data: bool, optional
+        :param header: whether or not the header should be returned, defaults to False
+        :type header: bool, optional
+        :param fname: whether or not the filename should be returned, defaults to False
+        :type fname: bool, optional
+        :raises ValueError: This error is raised if there is no light frame with the given target
+                            registered. Try 'update_raw()' if you think there should be one
+        :raises ValueError: if both (data and header) are set to False.
+                            If you want only the filenames address the attribute directly.
+        :yield: tuple of the desired outputs in the order (data, header, filename)
+        :rtype: Tuple
+        """
+        if target not in self.targets:
+            raise ValueError(f"There is no light frame for the given target: {target}")
+        light_files = [self.raw_path/l for l in self.light_files[target]]
+        return self.generator(light_files, data, header, fname, return_kwds, **keywords)
