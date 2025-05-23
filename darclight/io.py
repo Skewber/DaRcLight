@@ -317,7 +317,7 @@ class DataCollection():
         return self.generator(flat_files, data, header, fname, return_kwds, **keywords)
 
     def lights(self, target:str, data:bool=True, header:bool=False, fname:bool=False,
-               return_kwds:list[str]|None=None, **keywords)->Generator:
+               return_kwds:list[str]|None=None, reduced:bool=False, **keywords)->Generator:
         """Generator to get the data and/or header of the files of the raw light frames
           for a specific target.
 
@@ -338,5 +338,6 @@ class DataCollection():
         """
         if target not in self.targets:
             raise ValueError(f"There is no light frame for the given target: {target}")
-        light_files = [self.raw_path/l for l in self.light_files[target]]
+        path = self.reduced_path if reduced else self.raw_path
+        light_files = [path/l for l in self.light_files[target]]
         return self.generator(light_files, data, header, fname, return_kwds, **keywords)

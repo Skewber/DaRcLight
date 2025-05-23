@@ -124,7 +124,6 @@
             <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">stack</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sigmaclip</span><span class="p">:</span>
             <span class="n">stack</span> <span class="o">=</span> <span class="n">sigma_clip</span><span class="p">(</span><span class="n">stack</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">match</span> <span class="n">method</span><span class="p">:</span>
@@ -174,15 +173,12 @@
 
 <div class="viewcode-block" id="Reducer.create_master_bias">
 <a class="viewcode-back" href="../../reducer.html#darclight.reducer.Reducer.create_master_bias">[docs]</a>
-    <span class="k">def</span> <span class="nf">create_master_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">create_master_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a master bias by combining the registered files if it</span>
 <span class="sd">        does not exist yet and saves it.</span>
 
 <span class="sd">        :param force_new: whether or not a new master file should be forced, defaults to False</span>
 <span class="sd">        :type force_new: bool, optional</span>
-<span class="sd">        :param method: method used for combination. Check Reducer.combine for more detail,</span>
-<span class="sd">                        defaults to &#39;mean&#39;</span>
-<span class="sd">        :type method: str, optional</span>
 <span class="sd">        :param kwargs: additional keyword arguments passed to &#39;combine&#39;</span>
 <span class="sd">        :return: the combined data</span>
 <span class="sd">        :rtype: np.ndarray</span>
@@ -192,7 +188,6 @@
         <span class="c1"># there is no master created yet and don&#39;t force a new one</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span>
 
-
         <span class="k">if</span> <span class="n">force_new</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">master_bias_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># collect data</span>
             <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">bias</span><span class="p">()]</span>
@@ -201,7 +196,7 @@
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;NCOMBINE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">biases</span><span class="p">)</span>
             <span class="c1"># stack the frames and save</span>
-            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_filename</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">safe_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">/</span><span class="n">file_name</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
             <span class="c1"># update the masters</span>
@@ -217,7 +212,7 @@
 <div class="viewcode-block" id="Reducer.create_master_dark">
 <a class="viewcode-back" href="../../reducer.html#darclight.reducer.Reducer.create_master_dark">[docs]</a>
     <span class="k">def</span> <span class="nf">create_master_dark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exposure</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                           <span class="n">method</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+                           <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates master darks by combining the registered files if they</span>
 <span class="sd">        do not exist yet and saves them.</span>
 
@@ -227,9 +222,6 @@
 <span class="sd">        :type exposure: int, optional</span>
 <span class="sd">        :param force_new: whether or not a new master file should be forced, defaults to False</span>
 <span class="sd">        :type force_new: bool, optional</span>
-<span class="sd">        :param method: method used for combination. Check Reducer.combine for more detail,</span>
-<span class="sd">                        defaults to &#39;mean&#39;</span>
-<span class="sd">        :type method: str, optional</span>
 <span class="sd">        :param kwargs: additional keyword arguments passed to &#39;combine&#39;</span>
 <span class="sd">        :return: the combined data or None if the exposure time is set to -1</span>
 <span class="sd">        :rtype: np.ndarray | None</span>
@@ -237,7 +229,7 @@
         <span class="c1"># create a master frame for every exposure</span>
         <span class="k">if</span> <span class="n">exposure</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_dark</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_dark</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
         <span class="c1"># check if master dark exists</span>
@@ -250,14 +242,14 @@
             <span class="n">_</span><span class="p">,</span> <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hdu_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dark_files</span><span class="p">[</span><span class="n">exposure</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
             <span class="c1"># correction</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">darks</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">darks</span><span class="p">]</span>
 
             <span class="c1"># update the header</span>
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;NCOMBINE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">darks</span><span class="p">)</span>
             <span class="c1"># stack the frames and save</span>
-            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_filename</span><span class="p">(</span><span class="s1">&#39;dark&#39;</span><span class="p">,</span> <span class="n">exposure</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">exposure</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">safe_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">/</span><span class="n">file_name</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
             <span class="c1"># update the masters</span>
@@ -274,7 +266,7 @@
 <div class="viewcode-block" id="Reducer.create_master_flats">
 <a class="viewcode-back" href="../../reducer.html#darclight.reducer.Reducer.create_master_flats">[docs]</a>
     <span class="k">def</span> <span class="nf">create_master_flats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">used_filter</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">norm</span><span class="p">:</span><span class="n">Callable</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+                            <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates master flats by combining the registered files if they</span>
 <span class="sd">        do not exist yet and saves them.</span>
 
@@ -288,9 +280,6 @@
 <span class="sd">        :type norm: Callable | None, optional</span>
 <span class="sd">        :param force_new: whether or not a new master file should be forced, defaults to False</span>
 <span class="sd">        :type force_new: bool, optional</span>
-<span class="sd">        :param method: method used for combination. Check Reducer.combine for more detail,</span>
-<span class="sd">                        defaults to &#39;mean&#39;</span>
-<span class="sd">        :type method: str, optional</span>
 <span class="sd">        :param kwargs: additional keyword arguments passed to &#39;combine&#39;</span>
 <span class="sd">        :return: the combined data or None if the used_filter is set to &#39;all&#39;</span>
 <span class="sd">        :rtype: np.ndarray | None</span>
@@ -298,7 +287,7 @@
         <span class="c1"># execute the function for every filter</span>
         <span class="k">if</span> <span class="n">used_filter</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">filt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">used_filters</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_flats</span><span class="p">(</span><span class="n">filt</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_master_flats</span><span class="p">(</span><span class="n">filt</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
         <span class="c1"># check if a master flat is loaded</span>
@@ -315,7 +304,7 @@
             <span class="n">flats</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">flats</span><span class="p">(</span><span class="n">used_filter</span><span class="p">)]</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hdu_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">flat_files</span><span class="p">[</span><span class="n">used_filter</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
             <span class="c1"># correction</span>
-            <span class="n">mbias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span>
+            <span class="n">mbias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span>
             <span class="c1"># find best dark and scale</span>
             <span class="n">target</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">))</span>    <span class="c1"># type: ignore</span>
             <span class="n">exposures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dark_exposures</span>
@@ -329,7 +318,7 @@
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">header</span><span class="p">[</span><span class="s1">&#39;NCOMBINE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">flats</span><span class="p">)</span>
             <span class="c1"># stack the frames and save</span>
-            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">flats</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">flats</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">norm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">master</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">master</span><span class="p">)</span>
             <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_filename</span><span class="p">(</span><span class="s1">&#39;flat&#39;</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="n">used_filter</span><span class="p">)</span>
@@ -344,7 +333,7 @@
 <div class="viewcode-block" id="Reducer.reduce_lights">
 <a class="viewcode-back" href="../../reducer.html#darclight.reducer.Reducer.reduce_lights">[docs]</a>
     <span class="k">def</span> <span class="nf">reduce_lights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">force_new</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                      <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="kc">None</span><span class="p">:</span>
+                     <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;creates reduced light frames and saves them individually for later stacking/analysis</span>
 
 <span class="sd">        :param target: the object for which the frames should be calibrated,</span>
@@ -354,17 +343,13 @@
 <span class="sd">        :param force_new: wherther or not the frames should be overwritten if they exist,</span>
 <span class="sd">                        defaults to False</span>
 <span class="sd">        :type force_new: bool, optional</span>
-<span class="sd">        :param method: method used for stacking, only used if there are certain calibration</span>
-<span class="sd">                    frames (bias, dark, flat) missing,</span>
-<span class="sd">                    defaults to &#39;mean&#39;</span>
-<span class="sd">        :type method: str, optional</span>
 <span class="sd">        :raises RuntimeError: raised if force_new=False and a file with the same name exists </span>
 <span class="sd">                            in the reduced data directory</span>
 <span class="sd">        :rtype: None</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">tar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">light_meta</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">reduce_lights</span><span class="p">(</span><span class="n">tar</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduce_lights</span><span class="p">(</span><span class="n">tar</span><span class="p">,</span> <span class="n">force_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">update_reduced</span><span class="p">()</span>
@@ -387,7 +372,7 @@
             <span class="n">lights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lights</span><span class="p">)</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hdu_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">fnames</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="c1"># correction</span>
-            <span class="n">mbias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span>
+            <span class="n">mbias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_bias</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_bias</span>
             <span class="c1"># find best dark and scale</span>
             <span class="n">target_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">))</span>    <span class="c1"># type: ignore</span>
             <span class="n">exposures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dark_exposures</span>
@@ -399,7 +384,7 @@
 
             <span class="n">used_filter</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">))</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_flats</span><span class="p">[</span><span class="n">used_filter</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">mflat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_flats</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">mflat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_master_flats</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">mflat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">master_flats</span><span class="p">[</span><span class="n">used_filter</span><span class="p">]</span>
 
@@ -407,8 +392,46 @@
             <span class="k">for</span> <span class="n">data</span><span class="p">,</span> <span class="n">hdr</span><span class="p">,</span> <span class="n">fname</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lights</span><span class="p">,</span> <span class="n">hdrs</span><span class="p">,</span> <span class="n">fnames</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">safe_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">/</span><span class="n">fname</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">hdr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">update_reduced</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Reducer.stack_lights">
+<a class="viewcode-back" href="../../reducer.html#darclight.reducer.Reducer.stack_lights">[docs]</a>
+    <span class="k">def</span> <span class="nf">stack_lights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">alignment</span><span class="p">:</span><span class="n">Callable</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">-&gt;</span><span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;stacking the light frames of a given target. It will automatically loop over every filter.</span>
+
+<span class="sd">        :param target: the object in the image,</span>
+<span class="sd">                    a value of &#39;all&#39; means that this function is called recursevely</span>
+<span class="sd">                    for every registered target, defaults to &#39;all&#39;</span>
+<span class="sd">        :type target: str, optional</span>
+<span class="sd">        :param alignment: function to align the images,</span>
+<span class="sd">                        should have the signature alignment(np.ndarray, np.ndarray) where the</span>
+<span class="sd">                        first argument is the target and the second one is the source.</span>
+<span class="sd">                        The source will be aligned to mathc the target, defaults to None</span>
+<span class="sd">        :type alignment: Callable | None, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">tar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">light_meta</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stack_lights</span><span class="p">(</span><span class="n">tar</span><span class="p">,</span> <span class="n">alignment</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># collect data</span>
+        <span class="k">for</span> <span class="n">filt</span><span class="p">,</span> <span class="n">expo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">light_meta</span><span class="p">[</span><span class="n">target</span><span class="p">]:</span>
+            <span class="n">lights</span><span class="p">,</span> <span class="n">fnames</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">lights</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduced</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                   <span class="nb">filter</span><span class="o">=</span><span class="n">filt</span><span class="p">,</span> <span class="n">exposure</span><span class="o">=</span><span class="n">expo</span><span class="p">,</span> <span class="n">combined</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hdu_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">/</span><span class="n">fnames</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># update header</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;NCOMBINE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lights</span><span class="p">)</span>
+            <span class="c1"># stack the frames</span>
+            <span class="n">lights</span> <span class="o">=</span> <span class="p">[</span><span class="n">alignment</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lights</span><span class="p">]</span> <span class="k">if</span> <span class="n">alignment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">lights</span>
+            <span class="n">master</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">lights</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_filename</span><span class="p">(</span><span class="s1">&#39;light&#39;</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">expo</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">safe_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">/</span><span class="n">file_name</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span></div>
 </div>
 
+            <span class="c1"># update the masters</span>
+            <span class="c1"># self.data.master_light_files[target].append(file_name)</span>
+            <span class="c1"># self.master_lights[target].append(file_name)</span>
 </pre></div>
 
            </div>
