@@ -1,8 +1,12 @@
 """This module provides tools for data reduction"""
 from typing import Callable
+import logging
+import warnings
 import numpy as np
 from astropy.stats import sigma_clip
 from darclight.io import DataCollection
+
+logger = logging.getLogger(__name__)
 
 def inv_median(data:np.ndarray)->np.ndarray:
     """Function to normalize data by division of the median
@@ -23,6 +27,7 @@ class Reducer():
         self.master_darks:dict[int,np.ndarray|None] = {exp:None for exp in self.data.dark_exposures}
         self.master_flats:dict[str|None,np.ndarray|None] = {filt:None for filt in self.data.used_filters}
         self.master_lights:dict[str,np.ndarray|None] = {tar:None for tar in self.data.targets}
+        logger.info("Finished reducer initialisation.")
 
     @staticmethod
     def combine(data:list[np.ndarray], method:str='mean', sigmaclip:bool=True, sigma:int=5)->np.ndarray:
@@ -41,8 +46,15 @@ class Reducer():
         :return: returns the combined data array
         :rtype: np.ndarray
         """
+        logger.debug("Started combination with parameters:\n"+
+                    "\tnumber of images %d\n"+
+                    "\tmethod: %s\n"+
+                    "\tsigmaclip: %s\n"+
+                    "\tsigma: %s",
+                    len(data), method, sigmaclip, sigma)
         if len(data) == 1:
-            print("WARNING: only one file in the list!")
+            warnings.warn("WARNING: only one file in the list!")
+            logger.warning('only one file in the list --> no combination possible')
             return data[0]
 
         stack = np.stack(data)
@@ -99,29 +111,38 @@ class Reducer():
         :return: the combined data
         :rtype: np.ndarray
         """
+        logger.info("Started creation of master bias.")
         # check if master bias exists
         if self.master_bias is not None and not force_new:
         # there is no master created yet and don't force a new one
+            logger.debug("Master bias already loaded.")
             return self.master_bias
 
         if force_new or self.data.master_bias_file is None:
             # collect data
-            biases = [b for b in self.data.bias()]
+            biases, fnames = zip(*self.data.bias(fname=True))
+            biases = list(biases)
             _, header = self.data.hdu_from_file(self.data.raw_path/self.data.bias_files[0])
             # update header
+            # TODO: more detailed header update
             header['COMBINED'] = True
             header['NCOMBINE'] = len(biases)
             # stack the frames and save
             master = self.combine(biases, **kwargs)
             file_name = self.generate_filename('bias')
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            logger.debug("Combined %s frames to one master bias.\n"+
+                         "Master filename: \t%s\n"+
+                         "The used frames are:\n\t%s", len(fnames), file_name, '\n\t'.join(fnames))
             # update the masters
             self.data.master_bias_file = file_name
             self.master_bias = master
         else:
+            logger.info("Loaded master bias from file: %s", str(self.data.reduced_path/self.data.master_bias_file))
             data, _ = self.data.hdu_from_file(self.data.reduced_path/self.data.master_bias_file)
             self.master_bias = data
-
+        
+        logger.info("Finished master dark creation.")
         return self.master_bias
 
     def create_master_dark(self, exposure:int=-1, force_new:bool=False,
@@ -139,6 +160,7 @@ class Reducer():
         :return: the combined data or None if the exposure time is set to -1
         :rtype: np.ndarray | None
         """
+        logger.info("Started creation of master dark for exposure: %s", exposure)
         # create a master frame for every exposure
         if exposure == -1:
             for exp in self.data.dark_exposures:
@@ -147,33 +169,61 @@ class Reducer():
 
         # check if master dark exists
         if self.master_darks[exposure] is not None and not force_new:
+            logger.debug("Master dark already loaded.")
             return self.master_darks[exposure]
 
         if force_new or self.data.master_dark_files[exposure] is None:
             # collect data
-            darks = [d for d in self.data.darks(exposure)]
+            darks, fnames = zip(*self.data.darks(exposure, fname=True))
+            darks = list(darks)
             _, header = self.data.hdu_from_file(self.data.raw_path/self.data.dark_files[exposure][0])
             # correction
             if self.master_bias is None:
+                logger.info("There is no master bias for the correction loaded.")
                 self.create_master_bias(**kwargs)
             darks = [d-self.master_bias for d in darks]
 
             # update the header
+            # TODO: more detailed header update
             header['COMBINED'] = True
             header['NCOMBINE'] = len(darks)
             # stack the frames and save
             master = self.combine(darks, **kwargs)
             file_name = self.generate_filename('dark', exposure=str(exposure))
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            logger.debug("Combined %s frames to one master dark.\n"+
+                         "Master filename: \t%s\n"+
+                         "Exposure: %s"+
+                         "The used frames are:\n\t%s", len(fnames), file_name, exposure, '\n\t'.join(fnames))
             # update the masters
             self.data.master_dark_files[exposure] = file_name # type: ignore
             self.master_darks[exposure] = master
         else:
+            logger.info("Loaded master dark from file: %s",
+                        str(self.data.reduced_path/self.data.master_dark_files[exposure])) # type: ignore
             path = self.data.reduced_path / self.data.master_dark_files[exposure] # type: ignore
             data, _ = self.data.hdu_from_file(path)
             self.master_darks[exposure] = data
 
         return self.master_darks[exposure]
+
+    def __scale_dark(self, target_header)->np.ndarray:
+        """reads the header, finds the best master darks and scales it to match the exposure time
+
+        :param target_header: header of the target image
+        :type target_header: fits.io.header.Header
+        :return: scaled master dark
+        :rtype: np.ndarray
+        """
+        target_time = int(target_header.get('EXPOSURE'))
+        exposures = self.data.dark_exposures
+        idx = np.searchsorted(sorted(exposures), target_time, side='left')
+        best_time = exposures[idx] if idx<len(exposures) else exposures[-1]
+        mdark = self.master_darks[best_time]
+        mdark = mdark if mdark is not None else self.create_master_dark(best_time)
+        mdark = self.master_darks[best_time] * target_time / best_time   # type:ignore
+        return mdark
+
 
     def create_master_flats(self, used_filter:str|None='all', norm:Callable|None=None,
                             force_new:bool=False, **kwargs)->np.ndarray|None:
@@ -194,6 +244,7 @@ class Reducer():
         :return: the combined data or None if the used_filter is set to 'all'
         :rtype: np.ndarray | None
         """
+        logger.info("Started creation of master flat for filter: %s", used_filter)
         # execute the function for every filter
         if used_filter == 'all':
             for filt in self.data.used_filters:
@@ -202,37 +253,45 @@ class Reducer():
 
         # check if a master flat is loaded
         if self.master_flats[used_filter] is not None and not force_new:
+            logger.debug("Master flat already loaded.")
             return self.master_flats[used_filter]
 
         # check if a flat exists
         if not force_new and self.data.master_flat_files[used_filter] is not None: # type: ignore
+            logger.info("Loaded master flat from file: %s",
+                        str(self.data.reduced_path/self.data.master_flat_files[used_filter])) # type: ignore
             path = self.data.reduced_path / self.data.master_flat_files[used_filter] # type: ignore
             data, _ = self.data.hdu_from_file(path)
             self.master_flats[used_filter] = data
         else:
             # collect data
-            flats = [f for f in self.data.flats(used_filter)]
+            flats, fnames = zip(*self.data.flats(used_filter, fname=True))
+            flats = list(flats)
             _, header = self.data.hdu_from_file(self.data.raw_path/self.data.flat_files[used_filter][0])
             # correction
-            mbias = self.create_master_bias(**kwargs) if self.master_bias is None else self.master_bias
+            if self.master_bias is None:
+                logger.info("There is no master bias for the correction loaded.")
+                mbias = self.create_master_bias(**kwargs)
+            else:
+                mbias = self.master_bias
             # find best dark and scale
-            target = int(header.get('EXPOSURE'))    # type: ignore
-            exposures = self.data.dark_exposures
-            idx = np.searchsorted(sorted(exposures), target, side='left')
-            best_time = exposures[idx] if idx<len(exposures) else exposures[idx-1]
-            mdark = self.master_darks[best_time]
-            mdark = mdark if mdark is not None else self.create_master_dark(best_time)
-            mdark = self.master_darks[best_time] * target / best_time   # type:ignore
+            mdark = self.__scale_dark(header)
             flats = [f-mbias-mdark for f in flats]
             # update header
+            # TODO: more detailed header update
             header['COMBINED'] = True
             header['NCOMBINE'] = len(flats)
             # stack the frames and save
             master = self.combine(flats, **kwargs)
             if norm is not None:
                 master = norm(master)
+                logger.info("The flat frame is normalized.")
             file_name = self.generate_filename('flat', filt=used_filter)
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            logger.debug("Combined %s frames to one master dark.\n"+
+                         "Master filename: \t%s\n"+
+                         "Filter: %s"+
+                         "The used frames are:\n\t%s", len(fnames), file_name, used_filter, '\n\t'.join(fnames))
             # update the masters
             self.data.master_flat_files[used_filter] = file_name # type: ignore
             self.master_flats[used_filter] = master
@@ -254,6 +313,7 @@ class Reducer():
                             in the reduced data directory
         :rtype: None
         """
+        logger.info("Started reduction of light frames for %s", target)
         if target == 'all':
             for tar in self.data.light_meta:
                 self.reduce_lights(tar, force_new, **kwargs)
@@ -267,29 +327,27 @@ class Reducer():
                 if self.data.master_light_files[target] is None:
                     break
                 if file in self.data.master_light_files[target]:
-                    raise RuntimeError(f"The file '{file}' is already registered in the reducd data direcory."\
+                    logger.error("The file '%s' is already registeres in the reduced data directory.", file)
+                    raise RuntimeError(f"The file '{file}' is already registered in the reduced data direcory."\
                                     "Use force_new=True if you want to verwrite")
 
-        # if this point is reached not file conflicts with the reduced data
+        # if this point is reached no file conflicts with the reduced data
         # collect data
         meta = self.data.light_meta[target]
-        print(meta)
         for filt, expo in meta:
             lights, hdrs, fnames = zip(*self.data.lights(target, header=True, fname=True, filter=filt, exposure=expo))
             lights = list(lights)
             _, header = self.data.hdu_from_file(self.data.raw_path/fnames[0])
             # correction
-            mbias = self.create_master_bias(**kwargs) if self.master_bias is None else self.master_bias
+            if self.master_bias is None:
+                logger.info("There is no master bias for the correction loaded.")
+                mbias = self.create_master_bias(**kwargs)
+            else:
+                mbias = self.master_bias
             # find best dark and scale
-            target_time = int(header.get('EXPOSURE'))    # type: ignore
-            exposures = self.data.dark_exposures
-            idx = np.searchsorted(sorted(exposures), target_time, side='left')
-            best_time = exposures[idx] if idx<len(exposures) else exposures[idx-1]
-            mdark = self.master_darks[best_time]
-            mdark = mdark if mdark is not None else self.create_master_dark(best_time)
-            mdark = self.master_darks[best_time] * target_time / best_time   # type:ignore
-
-            used_filter = str(header.get('FILTER'))
+            mdark = self.__scale_dark(header)
+            used_filter = header.get('FILTER')
+            used_filter = str(used_filter) if used_filter is not None else None
             if self.master_flats[used_filter] is None:
                 mflat = self.create_master_flats(**kwargs)
             else:
@@ -297,8 +355,10 @@ class Reducer():
 
             lights = [(l-mbias-mdark)/mflat for l in lights]
             for data, hdr, fname in zip(lights, hdrs, fnames):
+                # TODO: add header update
                 self.data.safe_file(self.data.reduced_path/fname, data, hdr)
         self.data.update_reduced()
+        logger.info("Finished correction of light frames.")
 
     def stack_lights(self, target:str='all', alignment:Callable|None=None,
                      **kwargs)->None:
@@ -318,19 +378,29 @@ class Reducer():
             for tar in self.data.light_meta:
                 self.stack_lights(tar, alignment, **kwargs)
             return None
+        
+        logger.info("Started stacking of light frames for %s", target)
         # collect data
         for filt, expo in self.data.light_meta[target]:
             lights, fnames = zip(*self.data.lights(target, fname=True, reduced=True,
                                                    filter=filt, exposure=expo, combined=None))
             _, header = self.data.hdu_from_file(self.data.reduced_path/fnames[0])
             # update header
+            # TODO: more detailed header update
             header['COMBINED'] = True
             header['NCOMBINE'] = len(lights)
             # stack the frames
-            lights = [alignment(l) for l in lights] if alignment is not None else lights
+            if alignment is not None:
+                lights = [alignment(lights[0], l) for l in lights]
+                logger.info("The light frames are alighned.")
             master = self.combine(list(lights), **kwargs)
             file_name = self.generate_filename('light', target, filt, str(expo))
             self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            logger.debug("Combined %s frames to one master dark.\n"+
+                         "Master filename: \t%s\n"+
+                         "Filter: %s"+
+                         "Exposure: %s"+
+                         "The used frames are:\n\t%s", len(fnames), file_name, filt, expo, '\n\t'.join(fnames))
             # update the masters
             # self.data.master_light_files[target].append(file_name)
             # self.master_lights[target].append(file_name)

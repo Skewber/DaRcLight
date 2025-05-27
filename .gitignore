@@ -5,3 +5,4 @@ notes*
 .venv
 .vscode
 *pycache*
+log*
