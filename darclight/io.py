@@ -1,11 +1,14 @@
 """Module to manage general information like path to data"""
 from fnmatch import fnmatch
+import logging
 from functools import cached_property
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Tuple
 import numpy as np
 from astropy.io import fits
+
+logger = logging.getLogger(__name__)
 
 class DataCollection():
     """Class that organizes all files in a given directory.
@@ -28,6 +31,8 @@ class DataCollection():
         self.update_raw()
         self.update_reduced()
 
+        logger.debug("DataCollection created")
+
     @staticmethod
     def sort_files(path:str|Path, ignore:list|None=None)->Tuple[list,dict,dict,dict]:
         """Reads all files from a directory and sorts them in seperate lists based on their header.
@@ -45,6 +50,7 @@ class DataCollection():
             path = Path(path)
         files = [f for f in path.iterdir()
                  if f.is_file() and not any(fnmatch(f.name, pat) for pat in ignore)]
+        logger.info("Found %s file(s) in '%s'", len(files), str(path))
 
         common_kwds = {'bias':['bias', 'zero'],
                        'dark':['dark'],
@@ -90,6 +96,15 @@ class DataCollection():
         self.dark_files = darks
         self.flat_files = flats
         self.light_files = lights
+        logger.debug("Found the following raw file(s):\n"\
+                    "\t%s bias frame(s)\n"\
+                    "\t%s dark frame(s) for %s exposure(s)\n"\
+                    "\t%s flat frame(s) for %s filter(s)\n"\
+                    "\t%s light frame(s) for %s target(s)\n",
+                    len(bias),
+                    int(np.sum([len(frames) for frames in darks.values()])), len(darks),
+                    int(np.sum([len(frames) for frames in flats.values()])), len(flats),
+                    int(np.sum([len(frames) for frames in lights.values()])), len(lights))
 
     def update_reduced(self):
         """Rereads the reduced file directory and recreates the list for each imagetyp.
@@ -111,6 +126,15 @@ class DataCollection():
         # skip validation for lights since they are usually stacked seperately
         # => normally more than one
         self.master_light_files = {tar:None for tar in self.targets} | lights
+        logger.debug("Found the following reduced file(s):\n"\
+                    "\t%s bias frame(s)\n"\
+                    "\t%s dark frame(s) for %s exposure(s)\n"\
+                    "\t%s flat frame(s) for %s filter(s)\n"\
+                    "\t%s light frame(s) for %s target(s)\n",
+                    len(bias),
+                    int(np.sum([len(frames) for frames in darks.values()])), len(darks),
+                    int(np.sum([len(frames) for frames in flats.values()])), len(flats),
+                    int(np.sum([len(frames) for frames in lights.values()])), len(lights))
 
     @staticmethod
     def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
@@ -127,7 +151,7 @@ class DataCollection():
             return data, header
 
     @staticmethod
-    def safe_file(filename:str|Path, data:np.ndarray, header:fits.header.Header|None=None)->None:
+    def save_file(filename:str|Path, data:np.ndarray, header:fits.header.Header|None=None)->None:
         """Saves the given data and header with the given filename in the reduced data directory.
 
         :param filename: Desired name for the file
@@ -140,6 +164,7 @@ class DataCollection():
         hdu = fits.PrimaryHDU(data, header)
         hdul = fits.HDUList([hdu])
         hdul.writeto(filename, overwrite=True)
+        logger.debug("Saved the file '%s'", filename)
 
     @property
     def used_filters(self)->list[str]:
@@ -201,6 +226,7 @@ class DataCollection():
                 exp = header.get("EXPOSURE")
                 if exp is not None:
                     result[target].add((filt, int(exp)))
+        logger.debug("Created meta data for lights:\n\t%s", result)
         return dict(result)
 
     @staticmethod

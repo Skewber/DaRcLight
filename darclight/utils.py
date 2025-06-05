@@ -28,8 +28,8 @@ def enable_logging(file:bool=True, console:bool=False, filename:str='log'):
 
     if console:
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
         root_logger.addHandler(console_handler)
 
-    root_logger.info("Logging has been enabled.")
+    logger.info("Logging has been enabled.")

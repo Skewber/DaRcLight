@@ -47,7 +47,7 @@ class Reducer():
         :rtype: np.ndarray
         """
         logger.debug("Started combination with parameters:\n"+
-                    "\tnumber of images %d\n"+
+                    "\tnumber of images: %d\n"+
                     "\tmethod: %s\n"+
                     "\tsigmaclip: %s\n"+
                     "\tsigma: %s",
@@ -130,7 +130,7 @@ class Reducer():
             # stack the frames and save
             master = self.combine(biases, **kwargs)
             file_name = self.generate_filename('bias')
-            self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            self.data.save_file(self.data.reduced_path/file_name, master, header)
             logger.debug("Combined %s frames to one master bias.\n"+
                          "Master filename: \t%s\n"+
                          "The used frames are:\n\t%s", len(fnames), file_name, '\n\t'.join(fnames))
@@ -190,10 +190,10 @@ class Reducer():
             # stack the frames and save
             master = self.combine(darks, **kwargs)
             file_name = self.generate_filename('dark', exposure=str(exposure))
-            self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            self.data.save_file(self.data.reduced_path/file_name, master, header)
             logger.debug("Combined %s frames to one master dark.\n"+
                          "Master filename: \t%s\n"+
-                         "Exposure: %s"+
+                         "Exposure: %s\n"+
                          "The used frames are:\n\t%s", len(fnames), file_name, exposure, '\n\t'.join(fnames))
             # update the masters
             self.data.master_dark_files[exposure] = file_name # type: ignore
@@ -287,10 +287,10 @@ class Reducer():
                 master = norm(master)
                 logger.info("The flat frame is normalized.")
             file_name = self.generate_filename('flat', filt=used_filter)
-            self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            self.data.save_file(self.data.reduced_path/file_name, master, header)
             logger.debug("Combined %s frames to one master dark.\n"+
                          "Master filename: \t%s\n"+
-                         "Filter: %s"+
+                         "Filter: %s\n"+
                          "The used frames are:\n\t%s", len(fnames), file_name, used_filter, '\n\t'.join(fnames))
             # update the masters
             self.data.master_flat_files[used_filter] = file_name # type: ignore
@@ -356,7 +356,7 @@ class Reducer():
             lights = [(l-mbias-mdark)/mflat for l in lights]
             for data, hdr, fname in zip(lights, hdrs, fnames):
                 # TODO: add header update
-                self.data.safe_file(self.data.reduced_path/fname, data, hdr)
+                self.data.save_file(self.data.reduced_path/fname, data, hdr)
         self.data.update_reduced()
         logger.info("Finished correction of light frames.")
 
@@ -395,11 +395,11 @@ class Reducer():
                 logger.info("The light frames are alighned.")
             master = self.combine(list(lights), **kwargs)
             file_name = self.generate_filename('light', target, filt, str(expo))
-            self.data.safe_file(self.data.reduced_path/file_name, master, header)
+            self.data.save_file(self.data.reduced_path/file_name, master, header)
             logger.debug("Combined %s frames to one master dark.\n"+
                          "Master filename: \t%s\n"+
-                         "Filter: %s"+
-                         "Exposure: %s"+
+                         "Filter: %s\n"+
+                         "Exposure: %s\n"+
                          "The used frames are:\n\t%s", len(fnames), file_name, filt, expo, '\n\t'.join(fnames))
             # update the masters
             # self.data.master_light_files[target].append(file_name)
