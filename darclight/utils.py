@@ -5,13 +5,21 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+_logging_enabled = False
+
 def enable_logging(file:bool=True, console:bool=False, filename:str='log'):
     """later"""
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    global _logging_enabled
 
-    if root_logger.hasHandlers():
-        root_logger.info("Logging is already enabled.")
+    if _logging_enabled:
+        logger.info("Logging is already enabled.")
+        return None
+    
+    local_logger = logging.getLogger('darclight')
+    local_logger.setLevel(logging.DEBUG)
+
+    if local_logger.hasHandlers():
+        local_logger.info("Logging is already enabled.")
         return None
 
     if file:
@@ -24,12 +32,13 @@ def enable_logging(file:bool=True, console:bool=False, filename:str='log'):
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
-        root_logger.addHandler(file_handler)
+        local_logger.addHandler(file_handler)
 
     if console:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-        root_logger.addHandler(console_handler)
+        local_logger.addHandler(console_handler)
 
     logger.info("Logging has been enabled.")
+    _logging_enabled = True

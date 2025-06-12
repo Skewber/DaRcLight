@@ -6,3 +6,4 @@ notes*
 .vscode
 *pycache*
 log*
+prototypes/*

@@ -6,11 +6,9 @@ from warnings import warn
 from typing import Tuple
 import numpy as np
 from astropy.stats import sigma_clipped_stats
-from astropy.coordinates import SkyCoord, Angle
+from astropy.coordinates import Angle
 from astropy import units as u
 from astropy.table import Table
-from astropy.io import fits
-from astropy.wcs import WCS
 from astroquery.gaia import Gaia
 from photutils.detection import DAOStarFinder
 import astroalign as aa
@@ -37,12 +35,23 @@ def reference_from_file(fname:str, unit:Tuple[u.Unit, u.Unit])->Tuple:
     mags = [np.array(m, dtype=float) for m in mags]
     return star_id, ra, dec, *mags
 
+def estimate_fwhm(data:np.ndarray)->float:
+    """Function for approximating the FWHM value based on sources found in the provided data array.
+    ! ! ! THIS FUNCTION IS NOT IMPLEMENTED YET ! ! !
+
+    :param data: image data array to use for the estimation
+    :type data: np.ndarray
+    :return: value of the FWHM
+    :rtype: float
+    """
+    return 4.5
+
 class Photometer():
     """Class to perform basic photometry
     """
     def __init__(self, fwhm:float, output:str='output', target:str='none', fov:float=19.):
         self.fwhm = fwhm
-        self.fov = fov*u.arcmin
+        self.fov = fov
         self.output = Path(output)
         self.output.mkdir(exist_ok=True)
         self.target = target
@@ -56,7 +65,7 @@ class Photometer():
         return Table()
 
     def find_ref_stars(self, data:np.ndarray, ref_ra:np.ndarray, ref_dec:np.ndarray,
-                       max_mag:float=16., gaia_data_file:str|None=None)->Tuple[list[float], list[float]]:
+                       gaia_data_file:str|None=None)->Tuple[list[float], list[float]]:
         """finds the pixel positions of reference stars in a given image.
 
         :param data: the image data where the reference stars should be found
@@ -73,68 +82,39 @@ class Photometer():
         :return: returns a Tuple of pixel positions in both axis
         :rtype: Tuple[list[float], list[float]]
         """
-        # get star positions from data
+        # get the star position from the science data
         _, median, std = sigma_clipped_stats(data)
-        daofind = DAOStarFinder(fwhm=self.fwhm, threshold=5.*std, brightest=50)
+        fwhm = self.fwhm if self.fwhm is not None else estimate_fwhm(data)
+        daofind = DAOStarFinder(fwhm=fwhm, threshold=5.*std, brightest=50)
         sources = daofind(data - median)
         science_pixels = np.array((sources['xcentroid'], sources['ycentroid']))
 
-        # create artificial image
+        # get the star positions from gaia data
         mean_ra = np.mean(np.unwrap(ref_ra, period=360))
         mean_dec = np.mean(np.unwrap(ref_dec, period=360))
-        center = SkyCoord(ra=mean_ra, dec=mean_dec, unit=(u.deg, u.deg))
-        # load the 50 brightest stars from gaia
-        gaia_data = self._load_gaia_data(gaia_data_file, center, max_mag)
-        bright_idx = np.argsort(gaia_data['phot_g_mean_mag'])[:50]
-        gaia_data = gaia_data[bright_idx]
 
-        # setup for the wcs
-        pixel_scale = self.fov.value / data.shape[0]
-        fwhm = self.fwhm / 3600     # convert to degrees
+        cos = np.cos(np.deg2rad(mean_dec))
+        dist = np.sqrt((mean_ra-ref_ra)**2 * cos**2 + (mean_dec-ref_dec)**2)
+        # *2: twice the biggest distance from the center
+        # *1.2: 10% more than the biggest distance since the ref stars are probably not at the very edge
+        fov = np.max(dist) * 2.4
+        logger.debug("FOV: %s arcmin", fov*60)
+        gaia_data = self._load_gaia_data(gaia_data_file, mean_ra, mean_dec, fov/2)
+        pixel_scale = fov / data.shape
+        logger.debug("Approximate pixel scale: %s arcsec", pixel_scale*3600)
+        gaia_pxx = data.shape[1]//2 + ((np.array(gaia_data['ra']) - mean_ra)*cos) / pixel_scale[1]
+        gaia_pxy = data.shape[0]//2 + (np.array(gaia_data['dec']) - mean_dec) / pixel_scale[0]
+        gaia_pixels = np.array((gaia_pxx, gaia_pxy))
 
-        # create wcs to find artificial star positions
-        wcs = WCS(naxis=2)
-        wcs.wcs.crpix = [data.shape[1]/2, data.shape[0]/2]
-        wcs.wcs.cdelt = [pixel_scale, pixel_scale]
-        wcs.wcs.crval = [center.ra.deg, center.dec.deg]
-        wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        # find the necessary transformation and apply to reference pixel
+        trans, *_ = aa.find_transform(gaia_pixels.T, science_pixels.T)
+        ref_pxx = data.shape[1]//2 + ((ref_ra - mean_ra)*cos) / pixel_scale[1]
+        ref_pxy = data.shape[0]//2 + (ref_dec - mean_dec) / pixel_scale[0]
+        ref_pixels = trans(np.array((ref_pxx, ref_pxy)).T)
+        self.ref_stars['xpixel'], self.ref_stars['ypixel'] = ref_pixels.T
+        return ref_pixels
 
-        # find gaia pixel positions
-        gaia_coords = SkyCoord(ra=gaia_data['ra'], dec=gaia_data['dec'], unit=(u.deg, u.deg))
-        gaia_pixels = np.array(wcs.world_to_pixel(gaia_coords))
-
-        # find the transform and apply to reference pixels
-        transform, *_ = aa.find_transform(gaia_pixels.T, science_pixels.T)
-        refs = SkyCoord(ra=ref_ra, dec=ref_dec, unit=(u.deg, u.deg))
-        ref_pixels = np.array(wcs.world_to_pixel(refs))
-        ref_trans = transform(ref_pixels.T)
-        return ref_trans
-
-    def mark_ref_stars(self, data:np.ndarray, pixels:np.ndarray):
-        """Marks the reference stars in a given image with a circle and a number
-
-        :param data: image data where the reference stars should be marked
-        :type data: np.ndarray
-        :param pixels: iterable that has the pixel positions in the form [[x1, y1], [x2, y2], ...]
-        :type pixels: np.ndarray
-        """
-        height, width = data.shape
-        dpi = 100
-        fig, ax = plt.subplots(figsize=(height/dpi, width/dpi), dpi=dpi)
-        ax.imshow(data, cmap='grey', origin='lower', vmin=np.percentile(data, 5), vmax=np.percentile(data, 99))
-
-        radius = self.fwhm * 3
-        for i, (x, y) in enumerate(pixels, start=1):
-            circ = Circle((x, y),radius, edgecolor='red', facecolor='none', linewidth=2)
-            ax.add_patch(circ)
-            ax.text(x+radius, y+radius, str(i), color='red', fontsize=25)
-
-        ax.axis('off')
-        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        plt.savefig(f"{self.output}/ref_stars.png", dpi=dpi, bbox_inches='tight', pad_inches=0)
-        plt.close()
-
-    def _load_gaia_data(self, file:str|None=None, center:SkyCoord|None=None, max_mag:float=16)->Table:
+    def _load_gaia_data(self, file:str|None=None, ra:float=0, dec:float=0, radius:float=9.5)->Table:
         if file is not None:
             results = Table.read(file, format='fits')
             logger.info("Gaia data loaded from file '%s'", file)
@@ -155,15 +135,15 @@ class Photometer():
         else:
             logger.info("No file with Gaia data was provided or found. Starting DB request.")
             # caluclate the center of the reference stars
-            radius = np.sqrt(2*(self.fov/2)**2)
+            logger.debug("Gaia query around: %s, %s with a radius of: %s", ra, dec, radius)
 
-            query = f"""SELECT source_id, ra, dec, phot_g_mean_mag
+            query = f"""SELECT TOP 50 source_id, ra, dec, phot_g_mean_mag
             FROM gaiadr3.gaia_source
             WHERE CONTAINS(
             POINT('ICRS', ra, dec),
-            CIRCLE('ICRS', {center.ra.degree}, {center.dec.degree}, {radius.to(u.deg).value})
+            CIRCLE('ICRS', {ra}, {dec}, {radius})
             )=1
-            AND phot_g_mean_mag < {max_mag}"""
+            ORDER BY phot_g_mean_mag ASC"""
 
             job = Gaia.launch_job(query)
             results = job.get_results()
@@ -171,12 +151,29 @@ class Photometer():
             # save the data for potential later use
             filename = f"{self.target}_gaia.fits"
             results.write(f"{self.output}/{filename}", format='fits', overwrite=True)
-            with fits.open(filename, 'update') as hdul:
-                hdul[0].header['OBJECT'] = self.target
-
-        # FIXME: account for the case that less than 50 stars are found
-        # only select the brightes 50 stars
-        bright_idx = np.argsort(results['phot_g_mean_mag'])[:50]
-        results = results[bright_idx]
 
         return results
+
+    def mark_stars(self, data:np.ndarray, pixels:np.ndarray):
+        """Marks the reference stars in a given image with a circle and a number
+
+        :param data: image data where the reference stars should be marked
+        :type data: np.ndarray
+        :param pixels: iterable that has the pixel positions in the form [[x1, y1], [x2, y2], ...]
+        :type pixels: np.ndarray
+        """
+        height, width = data.shape
+        dpi = 100
+        _, ax = plt.subplots(figsize=(height/dpi, width/dpi), dpi=dpi)
+        ax.imshow(data, cmap='grey', origin='lower', vmin=np.percentile(data, 5), vmax=np.percentile(data, 99))
+
+        radius = self.fwhm * 3
+        for i, (x, y) in enumerate(pixels, start=1):
+            circ = Circle((x, y),radius, edgecolor='red', facecolor='none', linewidth=2)
+            ax.add_patch(circ)
+            ax.text(x+radius, y+radius, str(i), color='red', fontsize=25)
+
+        ax.axis('off')
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        plt.savefig(f"{self.output}/ref_stars_{self.target}.png", dpi=dpi, bbox_inches='tight', pad_inches=0)
+        plt.close()
