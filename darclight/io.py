@@ -230,7 +230,7 @@ class DataCollection():
         return dict(result)
 
     @staticmethod
-    def generator(filelist:list, data:bool=True, header:bool=False,
+    def file_data(filelist:list, data:bool=True, header:bool=False,
                   fname:bool=False, return_kwds:list[str]|None=None, **keywords)->Generator:
         """generator to get the data and/or header of the files in the provided list.
 
@@ -291,7 +291,7 @@ class DataCollection():
         :rtype: Tuple
         """
         bias_files = [self.raw_path/f for f in self.bias_files]
-        return self.generator(bias_files, data, header, fname, **keywords)
+        return self.file_data(bias_files, data, header, fname, **keywords)
 
     def darks(self, exposure:int, data:bool=True, header:bool=False, fname:bool=False, **keywords)->Generator:
         """Generator to get the data and/or header of the files of the raw dark frames
@@ -315,7 +315,7 @@ class DataCollection():
         if exposure not in self.dark_exposures:
             raise ValueError(f"There is no dark frame for this exposure: {exposure}")
         dark_files = [self.raw_path/f for f in self.dark_files[exposure]]
-        return self.generator(dark_files, data, header, fname, **keywords)
+        return self.file_data(dark_files, data, header, fname, **keywords)
 
     def flats(self, used_filter:str|None, data:bool=True, header:bool=False, fname:bool=False,
               return_kwds:list[str]|None=None, **keywords)->Generator:
@@ -340,7 +340,7 @@ class DataCollection():
         if used_filter not in self.used_filters:
             raise ValueError(f"There is no flat frame for this filter: {used_filter}")
         flat_files = [self.raw_path/f for f in self.flat_files[used_filter]]
-        return self.generator(flat_files, data, header, fname, return_kwds, **keywords)
+        return self.file_data(flat_files, data, header, fname, return_kwds, **keywords)
 
     def lights(self, target:str, data:bool=True, header:bool=False, fname:bool=False,
                return_kwds:list[str]|None=None, reduced:bool=False, **keywords)->Generator:
@@ -366,4 +366,4 @@ class DataCollection():
             raise ValueError(f"There is no light frame for the given target: {target}")
         path = self.reduced_path if reduced else self.raw_path
         light_files = [path/l for l in self.light_files[target]]
-        return self.generator(light_files, data, header, fname, return_kwds, **keywords)
+        return self.file_data(light_files, data, header, fname, return_kwds, **keywords)
