@@ -1,6 +1,9 @@
 """Module to provide utility tools for the reduction and analysis process."""
 import logging
 import os
+import numpy as np
+from scipy.ndimage import rotate
+from astropy.io import fits
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -42,3 +45,46 @@ def enable_logging(file:bool=True, console:bool=False, filename:str='log'):
 
     logger.info("Logging has been enabled.")
     _logging_enabled = True
+
+
+class ImageData():
+    def __init__(self, data:np.ndarray)->None:
+        if data.ndim != 2:
+            raise ValueError("Provided data has invalid number of dimensions."+
+                             f"Got data with {data.ndim} and expected 2!")
+        self.data = data
+
+        # clean the data by removing nans and infs
+        # TODO: include values on the edge
+        # TODO: higher order interpolation to reduce the effect of close bright sources
+        pxx, pxy = np.where(np.isnan(data))
+        logger.info("Found and interpolated %s nan values", len(pxx))
+        for x, y in zip(pxx, pxy):
+            self.data[x, y] = (data[x-1, y] +  data[x+1, y] + data[x, y-1] + data[x, y+1]) / 4
+        pxx, pxy = np.where(np.isinf(data))
+        logger.info("Found and interpolated %s inf values", len(pxx))
+        for x, y in zip(pxx, pxy):
+            self.data[x, y] = (data[x-1, y] +  data[x+1, y] + data[x, y-1] + data[x, y+1]) / 4
+
+    @classmethod
+    def from_fits(cls, filename:str):
+        """Creates the class from a fits file.
+
+        :param filename: name of the fits file to use
+        :type filename: str
+        :return: Instance of the ImageData
+        :rtype: ImageData
+        """
+        data = np.asarray(fits.getdata(filename))
+        return cls(data)
+
+    def rotate(self, angle:float):
+        """Rotates the data by a given angle
+
+        :param angle: angle to rotate the image in degree
+        :type angle: float
+        :return: returns itself
+        :rtype: ImageData
+        """
+        self.data = rotate(self.data, angle)
+        return self

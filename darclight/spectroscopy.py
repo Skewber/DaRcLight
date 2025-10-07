@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 from scipy.ndimage import gaussian_filter, rotate
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
-import matplotlib.pyplot as plt
+from darclight.utils import ImageData
 
 logger = logging.getLogger(__name__)
 
@@ -44,20 +44,9 @@ def multigauss(x:float|np.ndarray, *args)->float|np.ndarray:
     return y
 
 
-class SpectrumImage():
+class SpectrumImage(ImageData):
     """Class to work with and manipulate spectroscopic images.
     """
-    def __init__(self, image_data:np.ndarray)->None:
-        if image_data.ndim != 2:
-            raise ValueError("Provided data has invalid number of dimensions."+
-                             f"Got data with {image_data.ndim} and expected 2!")
-        self.image_data = image_data
-
-    @classmethod
-    def from_fits(cls, filename):
-        data = np.asarray(fits.getdata(filename))
-        return cls(data)
-
     @staticmethod
     def find_slit(image_data:np.ndarray)->tuple[int,int]:
         # TODO: add code for slit detection
@@ -67,24 +56,30 @@ class SpectrumImage():
         # TODO: add code for rotation detection
         return 0.
 
-    def rotate(self, angle:float|None=None):
-        """Applies a rotation to the image data.
-        If no angle is provided the best angle is estimated base on the slope of the spectrum.
+    def rotate_auto(self, px_limit:int=2):
+        """Determines a suitable rotation to orient the spectrum horizontally.
         If the slope is less than 2 pixel across the whole image no rotation is applied
         to reduce interpolation errors.
 
-        :param angle: desired rotation angle, if the angle should be determined automatically use None,
-            defaults to None
-        :type angle: float | None, optional
+        :param px_limit: maximum number of pixel to tollerate as change across the whole detector,
+            defaults to 2
+        :type px_limit: int, optional
         :return: a new SpectrumImage object with the rotated data
         :rtype: SpectrumImage
         """
-        if angle is None:
-            angle = self._find_rotation()
+        angle = self._find_rotation()
+        data = self.data
 
-        rotated_data = rotate(self.image_data, angle)
-        logger.info("Rotated image by %.2f degree", angle)
-        return SpectrumImage(rotated_data)
+        x = np.max(self.data.shape)
+        smallest_angle = np.degrees(np.arctan(px_limit/x))
+        if angle > smallest_angle:
+            self.rotate(angle)
+            logger.info("Rotated image by %.5f degree", angle)
+        else:
+            logger.info("Rotation skipped since the determined angle of %.5f degree" + 
+                        "is smaller than the threshold of %.5f degree",
+                        angle, smallest_angle)
+        return self
 
     @staticmethod
     def extract_full_slit(data:np.ndarray)->np.ndarray:
@@ -151,9 +146,9 @@ class SpectrumImage():
         """
         match method:
             case 'full_slit':
-                spectra = self.extract_full_slit(self.image_data)
+                spectra = self.extract_full_slit(self.data)
             case 'point_source':
-                spectra = self.extract_point_source(self.image_data, **kwargs)
+                spectra = self.extract_point_source(self.data, **kwargs)
             case _:
                 raise ValueError("Provided invalid method for extraction. You provided '{method}'")
 
