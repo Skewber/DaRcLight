@@ -3,9 +3,9 @@ import os
 from glob import iglob
 from fnmatch import fnmatch
 from collections.abc import Iterable
+from collections import defaultdict
 import logging
 from functools import cached_property
-from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Tuple
 import numpy as np
@@ -25,7 +25,8 @@ COMMON_KEYWORDS = {'BIAS':['bias', 'zero'],
 class DataCollection():
     """Class that organizes all files in a given directory.
     """
-    def __init__(self, path:str|None=None, reduced_path:str|None=None, ignore:list|None=None):
+    def __init__(self, path:str|None=None, reduced_path:str|None=None,
+                 ignore:list|None=None, filelist:list[str]|None=None):
         # ensure that both paths are an Path object
         if path is None:
             self.path = Path('.')
@@ -40,6 +41,8 @@ class DataCollection():
         self.reduced_path.mkdir(exist_ok=True)
 
         self.ignore = [] if ignore is None else ignore
+        self.raw_files = Table()
+        self.reduced_files = Table()
         self.scan(raw=True, reduced=True)
 
         logger.debug("DataCollection created")
@@ -60,7 +63,7 @@ class DataCollection():
                                     'TYPE', 'DATE-OBS',
                                     'NIGHT', 'JD',
                                     'EXPOSURE', 'FILTER',
-                                    'TARGET'),
+                                    'OBJECT'),
                             dtype=('i4', 'U',
                                     'U', 'U',
                                     'U', 'f8',
@@ -68,7 +71,7 @@ class DataCollection():
                                     'U'))
         # check files
         for file in iglob(str(self.path)+'/**/*', recursive=True):
-            if (os.path.isdir(file) or 
+            if (os.path.isdir(file) or
                 any((fnmatch(file, pat) for pat in self.ignore)) or
                 fnmatch(file, f"*{self.reduced_path}*")):
                 # skip if directory or contains a pattern from the ignore list or is an reduced file
@@ -88,12 +91,14 @@ class DataCollection():
     def _scan_reduced(self):
         self.reduced_files = Table(names=('ID', 'FILENAME',
                                         'TYPE', 'DATE',
-                                        'EXPOSURE', 'FILTER',
-                                        'OBJECT', 'COMBINED'),
+                                        'NIGHT', 'EXPOSURE',
+                                        'FILTER', 'OBJECT',
+                                        'COMBINED'),
                                 dtype=('i4', 'U',
                                         'U', 'U',
-                                        'f4', 'U',
-                                        'U', 'bool'))
+                                        'U', 'f4',
+                                        'U', 'U',
+                                        'bool'))
         for file in iglob(str(self.reduced_path)+'/**/*', recursive=True):
             if (os.path.isdir(file) or
                 any((fnmatch(file, pat) for pat in self.ignore))):
@@ -103,7 +108,8 @@ class DataCollection():
             self.reduced_files.add_row((0,
                                         file,
                                         self._get_imagetype(hdr['IMAGETYP']),
-                                        hdr.get('DATE', '0000-00-00T00:00:00'),
+                                        hdr.get('DATE', '1999-01-01T00:00:00.000'),
+                                        '0000-00-00',
                                         hdr.get('EXPOSURE', -1),
                                         hdr.get('FILTER', 'None'),
                                         hdr.get('OBJECT', 'None'),
@@ -125,12 +131,59 @@ class DataCollection():
                 Time(self.raw_files['DATE-OBS'])-12*u.hour
                 ).to_value('iso', subfmt='date'))
             # sort by time and add unique ID to each file
-            self.raw_files.sort('JD')
+            self.raw_files.sort('DATE-OBS')
             self.raw_files['ID'] = np.arange(len(self.raw_files))
             # group the files by necessary values
-            self.raw_files = self.raw_files.group_by(['TYPE', 'NIGHT', 'FILTER', 'EXPOSURE', 'TARGET'])
+            # self.raw_files = self.raw_files.group_by(['TYPE', 'NIGHT', 'FILTER', 'EXPOSURE', 'TARGET'])
         if reduced:
             self._scan_reduced()
+            # only update the data if at least one file is found
+            if len(self.reduced_files) > 0:
+                self.reduced_files['NIGHT'] = np.array((
+                    Time(self.reduced_files['DATE'])-12*u.hour
+                ).to_value('iso', subfmt='date'))
+                self.reduced_files.sort('DATE')
+                self.reduced_files['ID'] = np.arange(len(self.reduced_files))
+
+    def add_file(self, fname:str|Path, reduced:bool=False, row:tuple|None=None):
+        """adds a row to an existing table
+
+        :param fname: filename to add
+        :type fname: str | Path
+        :param reduced: if it should be added to the raw or reduced table, defaults to False
+        :type reduced: bool, optional
+        :param row: ow informations, depends on raw or reduced what it should contain,
+        if None the file will be read and the values are derived automatically, defaults to None
+        :type row: tuple | None, optional
+        """
+        table = self.reduced_files if reduced else self.raw_files
+        fname = str(fname)
+
+        if row is None:
+            hdr = fits.getheader(fname)
+            date = hdr.get('DATE', '2000-01-01T00:00:00.000')
+            if reduced:
+                row = (len(table)+1,
+                        fname,
+                        self._get_imagetype(hdr['IMAGETYP']),
+                        date,
+                        (Time(date)-12*u.hour).to_value('iso', subfmt='date'),
+                        hdr.get('EXPOSURE', -1),
+                        hdr.get('FILTER', 'None'),
+                        hdr.get('OBJECT', 'None'),
+                        hdr.get('COMBINED', False))
+            else:
+                row = (len(table)+1,
+                        fname,
+                        self._get_imagetype(hdr.get('IMAGETYP', 'None')),
+                        hdr.get('DATE-OBS', '2000-01-01T00:00:00'),
+                        (Time(date)-12*u.hour).to_value('iso', subfmt='date'),
+                        hdr.get('JD', 0),
+                        hdr.get('EXPOSURE', -1),
+                        hdr.get('FILTER', 'None'),
+                        hdr.get('OBJECT', 'None'))
+
+        table.add_row(row)
 
     @staticmethod
     def hdu_from_file(file:str)->Tuple[np.ndarray, fits.header.Header]:
@@ -204,7 +257,7 @@ class DataCollection():
         :rtype: list[str]
         """
         lights = self.raw_files[self.raw_files['TYPE']=='LIGHT']
-        return [str(obj) for obj in set(lights['TARGET'])]
+        return [str(obj) for obj in set(lights['OBJECT'])]
 
     @cached_property
     def light_meta(self)->dict[str,set[Tuple[str, int]]]:
@@ -218,11 +271,111 @@ class DataCollection():
         result = defaultdict(set)
 
         lights = self.raw_files[self.raw_files['TYPE']=='LIGHT']
-        for target, filt, exp in lights['TARGET', 'FILTER', 'EXPOSURE']:
+        for target, filt, exp in lights['OBJECT', 'FILTER', 'EXPOSURE']:
             if exp is not None and filt is not None:
                 result[target].add((filt, int(exp)))
         logger.debug("Created meta data for lights:\n\t%s", result)
         return dict(result)
+
+    def get_files(self, reduced:bool=False, **filters)->np.ndarray:
+        """returns the filenames of the files specified
+
+        :param reduced: whether the desired files should be reduced or not, defaults to False
+        :type reduced: bool, optional
+        :return: filenames satisfy the filters
+        :rtype: np.ndarray
+        """
+        table = self.reduced_files if reduced else self.raw_files
+
+        mask = np.ones(len(table), dtype=bool)
+        for filt, val in filters.items():
+            mask &= table[filt.upper()] == val
+
+        files = np.array(table['FILENAME'][mask])
+        files = files[0] if len(files)==1 else files
+        return files
+
+    @property
+    def bias_files(self):
+        return self.get_files(type='BIAS')
+    
+    @cached_property
+    def dark_files(self):
+        return {expo:self.get_files(type='DARK', exposure=expo) for expo in self.dark_exposures}
+
+    @cached_property
+    def flat_files(self):
+        return {filt:self.get_files(type='FLAT', filter=filt) for filt in self.used_filters}
+
+    def get_master(self, imagetype:str, specifier:int|str|None=None, header=True)->np.ndarray|tuple|None:
+        """looks for a specific stacked master frame
+
+        :param imagetype: type of the image to check, use 'bias', 'dark', 'flat' or 'light'
+        :type imagetype: str
+        :param specifier: exposure time to look for, if imagetype='dark' or
+          filter to look for if imagetype='flat' or target if imagetype='light,
+          defaults to None
+        :type specifier: int | str | None, optional
+        :return: data of the required file, None if it does not exist
+        :rtype: np.ndarray | None
+        """
+        combined = np.array(self.reduced_files['COMBINED'])
+        match imagetype.lower():
+            case 'bias':
+                mask = np.array(self.reduced_files['TYPE']=='BIAS') & combined
+            case 'dark':
+                if specifier is None:
+                    # if no specifier is given any stacked dark will do
+                    mask = (np.array(self.reduced_files['TYPE']=='DARK') &
+                            combined)
+                # ensure that the specifier has the correct type
+                elif isinstance(specifier, (int, float)):
+                    mask = (np.array(self.reduced_files['TYPE']=='DARK') &
+                            np.array(self.reduced_files['EXPOSURE']==specifier) &
+                            combined)
+                else:
+                    raise ValueError("The specifier has to be an int or float, "+
+                                     f"you provided {type(specifier)}")
+            case 'flat':
+                if specifier is None:
+                    # if no specifier is given any flat will do
+                    mask = (np.array(self.reduced_files['TYPE']=='FLAT') &
+                            combined)
+                # ensure that the specifier has the correct type
+                elif isinstance(specifier, str):
+                    mask = (np.array(self.reduced_files['TYPE']=='FLAT') &
+                            np.array(self.reduced_files['FILTER']==specifier) &
+                            combined)
+                else:
+                    raise ValueError(f"The specifier has to be a string, you provided {type(specifier)}.")
+            case 'light':
+                if specifier is None:
+                    # if no specifier is given any flat will do
+                    mask = (np.array(self.reduced_files['TYPE']=='FLAT') &
+                            combined)
+                # ensure that the specifier has the correct type
+                elif isinstance(specifier, int):
+                    mask = (np.array(self.reduced_files['TYPE']=='FLAT') &
+                            np.array(self.reduced_files['FILTER']==specifier) &
+                            combined)
+                else:
+                    raise ValueError(f"The specifier has to be a string, you provided {type(specifier)}.")
+            case _:
+                raise ValueError(f"You provided an invalid imagetype '{imagetype}', use 'bias', 'dark' or 'flat'")
+
+        if np.sum(mask) == 0:
+            return None
+        elif np.sum(mask) == 1:
+            idx = np.nonzero(mask)
+            data, hdr = self.hdu_from_file(str(self.reduced_files['FILENAME'][idx][0]))
+            if header:
+                return data, header
+            return data
+        else:
+            # too many matches
+            files = [str(f) for f in self.reduced_files['FILENAME'][mask]]
+            raise RuntimeError(f"Found {len(files)} frames matching ({files})." +
+                               "Include a specifier or ensure only one master frame for the given specifier exists.")
 
     @staticmethod
     def file_data(filelist:Iterable[str], data:bool=True, header:bool=False,
@@ -337,8 +490,7 @@ class DataCollection():
         """
         if used_filter not in self.used_filters:
             raise ValueError(f"There is no flat frame for this filter: {used_filter}")
-        flats = self.raw_files[self.raw_files['TYPE']=='FLAT']
-        flat_files = np.array(flats['FILENAME'][flats['EXPOSURE']==used_filter])
+        flat_files = self.get_files(type='FLAT', filter=used_filter)
         return self.file_data(flat_files, data, header, fname, return_kwds, **filter_kwds)
 
     def lights(self, target:str, data:bool=True, header:bool=False, fname:bool=False,
@@ -361,8 +513,8 @@ class DataCollection():
         :yield: tuple of the desired outputs in the order (data, header, filename)
         :rtype: Tuple
         """
+        table = self.reduced_files if reduced else self.raw_files
         if target not in self.targets:
             raise ValueError(f"There is no light frame for the given target: {target}")
-        lights = self.raw_files[self.raw_files['TYPE']=='LIGHT']
-        light_files = np.array(lights['FILENAME'][lights['TARGET']==target])
+        light_files = self.get_files(reduced=reduced, type='LIGHT', object=target)
         return self.file_data(light_files, data, header, fname, return_kwds, **filter_kwds)
