@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="io module" href="io.html" />
-    <link rel="prev" title="Welcome to DaRcLight’s documentation!" href="index.html" /> 
+    <link rel="prev" title="tutorial" href="tutorial.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,9 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">darclight</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="io.html">io module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reducer.html">reducer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">reducer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">photometry module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">utils module</a></li>
 </ul>
 </li>
 </ul>
@@ -81,37 +84,60 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="io.html">io module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="io.html#darclight.io.DataCollection"><code class="docutils literal notranslate"><span class="pre">DataCollection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.add_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.add_file()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.bias"><code class="docutils literal notranslate"><span class="pre">DataCollection.bias()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.bias_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.bias_files</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.dark_exposures"><code class="docutils literal notranslate"><span class="pre">DataCollection.dark_exposures</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.dark_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.dark_files</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.darks"><code class="docutils literal notranslate"><span class="pre">DataCollection.darks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.file_data"><code class="docutils literal notranslate"><span class="pre">DataCollection.file_data()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.flat_exposures"><code class="docutils literal notranslate"><span class="pre">DataCollection.flat_exposures</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.flat_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.flat_files</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.flats"><code class="docutils literal notranslate"><span class="pre">DataCollection.flats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.generator"><code class="docutils literal notranslate"><span class="pre">DataCollection.generator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.get_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.get_files()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.get_master"><code class="docutils literal notranslate"><span class="pre">DataCollection.get_master()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.hdu_from_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.hdu_from_file()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.light_meta"><code class="docutils literal notranslate"><span class="pre">DataCollection.light_meta</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.lights"><code class="docutils literal notranslate"><span class="pre">DataCollection.lights()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.safe_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.safe_file()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.sort_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.sort_files()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.save_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.save_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.scan"><code class="docutils literal notranslate"><span class="pre">DataCollection.scan()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.targets"><code class="docutils literal notranslate"><span class="pre">DataCollection.targets</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.update_raw"><code class="docutils literal notranslate"><span class="pre">DataCollection.update_raw()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.update_reduced"><code class="docutils literal notranslate"><span class="pre">DataCollection.update_reduced()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="io.html#darclight.io.DataCollection.used_filters"><code class="docutils literal notranslate"><span class="pre">DataCollection.used_filters</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="reducer.html">reducer module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer"><code class="docutils literal notranslate"><span class="pre">Reducer</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.combine"><code class="docutils literal notranslate"><span class="pre">Reducer.combine()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.create_master_bias"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_bias()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.create_master_dark"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_dark()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.create_master_flats"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_flats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.generate_filename"><code class="docutils literal notranslate"><span class="pre">Reducer.generate_filename()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.reduce_lights"><code class="docutils literal notranslate"><span class="pre">Reducer.reduce_lights()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reducer.html#darclight.reducer.Reducer.stack_lights"><code class="docutils literal notranslate"><span class="pre">Reducer.stack_lights()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="reduction.html">reducer module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer"><code class="docutils literal notranslate"><span class="pre">Reducer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.combine"><code class="docutils literal notranslate"><span class="pre">Reducer.combine()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.create_master_bias"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_bias()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.create_master_dark"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_dark()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.create_master_flats"><code class="docutils literal notranslate"><span class="pre">Reducer.create_master_flats()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.generate_filename"><code class="docutils literal notranslate"><span class="pre">Reducer.generate_filename()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.reduce_lights"><code class="docutils literal notranslate"><span class="pre">Reducer.reduce_lights()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduction.html#darclight.reduction.Reducer.stack_lights"><code class="docutils literal notranslate"><span class="pre">Reducer.stack_lights()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="reducer.html#darclight.reducer.inv_median"><code class="docutils literal notranslate"><span class="pre">inv_median()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#darclight.reduction.inv_median"><code class="docutils literal notranslate"><span class="pre">inv_median()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="photometry.html">photometry module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#darclight.photometry.Photometer"><code class="docutils literal notranslate"><span class="pre">Photometer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="photometry.html#darclight.photometry.Photometer.find_ref_stars"><code class="docutils literal notranslate"><span class="pre">Photometer.find_ref_stars()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="photometry.html#darclight.photometry.Photometer.mark_stars"><code class="docutils literal notranslate"><span class="pre">Photometer.mark_stars()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#darclight.photometry.estimate_fwhm"><code class="docutils literal notranslate"><span class="pre">estimate_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#darclight.photometry.reference_from_file"><code class="docutils literal notranslate"><span class="pre">reference_from_file()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">utils module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#darclight.utils.ImageData"><code class="docutils literal notranslate"><span class="pre">ImageData</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#darclight.utils.ImageData.from_fits"><code class="docutils literal notranslate"><span class="pre">ImageData.from_fits()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#darclight.utils.ImageData.rotate"><code class="docutils literal notranslate"><span class="pre">ImageData.rotate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#darclight.utils.enable_logging"><code class="docutils literal notranslate"><span class="pre">enable_logging()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -122,7 +148,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to DaRcLight’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial.html" class="btn btn-neutral float-left" title="tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="io.html" class="btn btn-neutral float-right" title="io module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

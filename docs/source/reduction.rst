@@ -1,7 +1,7 @@
 reducer module
 ==============
 
-.. automodule:: darclight.reducer
+.. automodule:: darclight.reduction
    :members:
    :show-inheritance:
    :undoc-members:

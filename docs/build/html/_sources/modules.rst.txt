@@ -5,4 +5,6 @@ darclight
    :maxdepth: 4
 
    io
-   reducer
+   reduction
+   photometry
+   utils

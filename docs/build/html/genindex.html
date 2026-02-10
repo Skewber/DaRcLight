@@ -41,6 +41,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">darclight</a></li>
 </ul>
 
@@ -71,25 +72,40 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#B"><strong>B</strong></a>
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  
 </div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="io.html#darclight.io.DataCollection.add_file">add_file() (darclight.io.DataCollection method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io.html#darclight.io.DataCollection.bias">bias() (darclight.io.DataCollection method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="io.html#darclight.io.DataCollection.bias_files">bias_files (darclight.io.DataCollection property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -97,15 +113,15 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.Reducer.combine">combine() (darclight.reducer.Reducer static method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.combine">combine() (darclight.reduction.Reducer static method)</a>
 </li>
-      <li><a href="reducer.html#darclight.reducer.Reducer.create_master_bias">create_master_bias() (darclight.reducer.Reducer method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.create_master_bias">create_master_bias() (darclight.reduction.Reducer method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.Reducer.create_master_dark">create_master_dark() (darclight.reducer.Reducer method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.create_master_dark">create_master_dark() (darclight.reduction.Reducer method)</a>
 </li>
-      <li><a href="reducer.html#darclight.reducer.Reducer.create_master_flats">create_master_flats() (darclight.reducer.Reducer method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.create_master_flats">create_master_flats() (darclight.reduction.Reducer method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -121,15 +137,31 @@
 </li>
       </ul></li>
       <li>
-    darclight.reducer
+    darclight.photometry
 
       <ul>
-        <li><a href="reducer.html#module-darclight.reducer">module</a>
+        <li><a href="photometry.html#module-darclight.photometry">module</a>
+</li>
+      </ul></li>
+      <li>
+    darclight.reduction
+
+      <ul>
+        <li><a href="reduction.html#module-darclight.reduction">module</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    darclight.utils
+
+      <ul>
+        <li><a href="utils.html#module-darclight.utils">module</a>
+</li>
+      </ul></li>
       <li><a href="io.html#darclight.io.DataCollection.dark_exposures">dark_exposures (darclight.io.DataCollection property)</a>
+</li>
+      <li><a href="io.html#darclight.io.DataCollection.dark_files">dark_files (darclight.io.DataCollection property)</a>
 </li>
       <li><a href="io.html#darclight.io.DataCollection.darks">darks() (darclight.io.DataCollection method)</a>
 </li>
@@ -138,14 +170,34 @@
   </ul></td>
 </tr></table>
 
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="utils.html#darclight.utils.enable_logging">enable_logging() (in module darclight.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="photometry.html#darclight.photometry.estimate_fwhm">estimate_fwhm() (in module darclight.photometry)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="io.html#darclight.io.DataCollection.file_data">file_data() (darclight.io.DataCollection static method)</a>
+</li>
+      <li><a href="photometry.html#darclight.photometry.Photometer.find_ref_stars">find_ref_stars() (darclight.photometry.Photometer method)</a>
+</li>
       <li><a href="io.html#darclight.io.DataCollection.flat_exposures">flat_exposures (darclight.io.DataCollection property)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="io.html#darclight.io.DataCollection.flat_files">flat_files (darclight.io.DataCollection property)</a>
+</li>
       <li><a href="io.html#darclight.io.DataCollection.flats">flats() (darclight.io.DataCollection method)</a>
+</li>
+      <li><a href="utils.html#darclight.utils.ImageData.from_fits">from_fits() (darclight.utils.ImageData class method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -153,11 +205,13 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.Reducer.generate_filename">generate_filename() (darclight.reducer.Reducer static method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.generate_filename">generate_filename() (darclight.reduction.Reducer static method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="io.html#darclight.io.DataCollection.generator">generator() (darclight.io.DataCollection static method)</a>
+      <li><a href="io.html#darclight.io.DataCollection.get_files">get_files() (darclight.io.DataCollection method)</a>
+</li>
+      <li><a href="io.html#darclight.io.DataCollection.get_master">get_master() (darclight.io.DataCollection method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -173,7 +227,11 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.inv_median">inv_median() (in module darclight.reducer)</a>
+      <li><a href="utils.html#darclight.utils.ImageData">ImageData (class in darclight.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reduction.html#darclight.reduction.inv_median">inv_median() (in module darclight.reduction)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -193,26 +251,44 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="photometry.html#darclight.photometry.Photometer.mark_stars">mark_stars() (darclight.photometry.Photometer method)</a>
+</li>
       <li>
     module
 
       <ul>
         <li><a href="io.html#module-darclight.io">darclight.io</a>
 </li>
-        <li><a href="reducer.html#module-darclight.reducer">darclight.reducer</a>
+        <li><a href="photometry.html#module-darclight.photometry">darclight.photometry</a>
+</li>
+        <li><a href="reduction.html#module-darclight.reduction">darclight.reduction</a>
+</li>
+        <li><a href="utils.html#module-darclight.utils">darclight.utils</a>
 </li>
       </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="photometry.html#darclight.photometry.Photometer">Photometer (class in darclight.photometry)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.Reducer.reduce_lights">reduce_lights() (darclight.reducer.Reducer method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.reduce_lights">reduce_lights() (darclight.reduction.Reducer method)</a>
+</li>
+      <li><a href="reduction.html#darclight.reduction.Reducer">Reducer (class in darclight.reduction)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reducer.html#darclight.reducer.Reducer">Reducer (class in darclight.reducer)</a>
+      <li><a href="photometry.html#darclight.photometry.reference_from_file">reference_from_file() (in module darclight.photometry)</a>
+</li>
+      <li><a href="utils.html#darclight.utils.ImageData.rotate">rotate() (darclight.utils.ImageData method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -220,13 +296,13 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="io.html#darclight.io.DataCollection.safe_file">safe_file() (darclight.io.DataCollection static method)</a>
+      <li><a href="io.html#darclight.io.DataCollection.save_file">save_file() (darclight.io.DataCollection static method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="io.html#darclight.io.DataCollection.sort_files">sort_files() (darclight.io.DataCollection static method)</a>
+      <li><a href="io.html#darclight.io.DataCollection.scan">scan() (darclight.io.DataCollection method)</a>
 </li>
-      <li><a href="reducer.html#darclight.reducer.Reducer.stack_lights">stack_lights() (darclight.reducer.Reducer method)</a>
+      <li><a href="reduction.html#darclight.reduction.Reducer.stack_lights">stack_lights() (darclight.reduction.Reducer method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -242,12 +318,6 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="io.html#darclight.io.DataCollection.update_raw">update_raw() (darclight.io.DataCollection method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="io.html#darclight.io.DataCollection.update_reduced">update_reduced() (darclight.io.DataCollection method)</a>
-</li>
       <li><a href="io.html#darclight.io.DataCollection.used_filters">used_filters (darclight.io.DataCollection property)</a>
 </li>
   </ul></td>

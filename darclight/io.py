@@ -152,8 +152,8 @@ class DataCollection():
         :type fname: str | Path
         :param reduced: if it should be added to the raw or reduced table, defaults to False
         :type reduced: bool, optional
-        :param row: ow informations, depends on raw or reduced what it should contain,
-        if None the file will be read and the values are derived automatically, defaults to None
+        :param row: row informations, depends on raw or reduced what it should contain.
+                    If None the file will be read and the values are derived automatically, defaults to None
         :type row: tuple | None, optional
         """
         table = self.reduced_files if reduced else self.raw_files

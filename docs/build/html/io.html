@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="reducer module" href="reducer.html" />
+    <link rel="next" title="reducer module" href="reduction.html" />
     <link rel="prev" title="darclight" href="modules.html" /> 
 </head>
 
@@ -44,29 +44,36 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">tutorial</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">darclight</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">io module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#darclight.io.DataCollection"><code class="docutils literal notranslate"><span class="pre">DataCollection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.add_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.add_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.bias"><code class="docutils literal notranslate"><span class="pre">DataCollection.bias()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.bias_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.bias_files</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.dark_exposures"><code class="docutils literal notranslate"><span class="pre">DataCollection.dark_exposures</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.dark_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.dark_files</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.darks"><code class="docutils literal notranslate"><span class="pre">DataCollection.darks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.file_data"><code class="docutils literal notranslate"><span class="pre">DataCollection.file_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.flat_exposures"><code class="docutils literal notranslate"><span class="pre">DataCollection.flat_exposures</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.flat_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.flat_files</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.flats"><code class="docutils literal notranslate"><span class="pre">DataCollection.flats()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.generator"><code class="docutils literal notranslate"><span class="pre">DataCollection.generator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.get_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.get_files()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.get_master"><code class="docutils literal notranslate"><span class="pre">DataCollection.get_master()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.hdu_from_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.hdu_from_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.light_meta"><code class="docutils literal notranslate"><span class="pre">DataCollection.light_meta</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.lights"><code class="docutils literal notranslate"><span class="pre">DataCollection.lights()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.safe_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.safe_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.sort_files"><code class="docutils literal notranslate"><span class="pre">DataCollection.sort_files()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.save_file"><code class="docutils literal notranslate"><span class="pre">DataCollection.save_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.scan"><code class="docutils literal notranslate"><span class="pre">DataCollection.scan()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.targets"><code class="docutils literal notranslate"><span class="pre">DataCollection.targets</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.update_raw"><code class="docutils literal notranslate"><span class="pre">DataCollection.update_raw()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.update_reduced"><code class="docutils literal notranslate"><span class="pre">DataCollection.update_reduced()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#darclight.io.DataCollection.used_filters"><code class="docutils literal notranslate"><span class="pre">DataCollection.used_filters</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="reducer.html">reducer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">reducer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">photometry module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">utils module</a></li>
 </ul>
 </li>
 </ul>
@@ -101,12 +108,28 @@
 <p>Module to manage general information like path to data</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="darclight.io.DataCollection">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">darclight.io.</span></span><span class="sig-name descname"><span class="pre">DataCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">darclight.io.</span></span><span class="sig-name descname"><span class="pre">DataCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filelist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Class that organizes all files in a given directory.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.add_file">
+<span class="sig-name descname"><span class="pre">add_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.add_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.add_file" title="Link to this definition"></a></dt>
+<dd><p>adds a row to an existing table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> (<em>str</em><em> | </em><em>Path</em>) – filename to add</p></li>
+<li><p><strong>reduced</strong> (<em>bool</em><em>, </em><em>optional</em>) – if it should be added to the raw or reduced table, defaults to False</p></li>
+<li><p><strong>row</strong> (<em>tuple</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – row informations, depends on raw or reduced what it should contain.
+If None the file will be read and the values are derived automatically, defaults to None</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.bias">
-<span class="sig-name descname"><span class="pre">bias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.bias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.bias" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">bias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.bias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.bias" title="Link to this definition"></a></dt>
 <dd><p>Generator to get the data and/or header of the files in the raw bias frames.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -130,6 +153,11 @@ If you want only the filenames address the attribute directly.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.bias_files">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bias_files</span></span><a class="headerlink" href="#darclight.io.DataCollection.bias_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.dark_exposures">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dark_exposures</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#darclight.io.DataCollection.dark_exposures" title="Link to this definition"></a></dt>
 <dd><p>List of exposure times where a dark frame is directly available.</p>
@@ -143,9 +171,14 @@ If you want only the filenames address the attribute directly.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.dark_files">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dark_files</span></span><a class="headerlink" href="#darclight.io.DataCollection.dark_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.darks">
-<span class="sig-name descname"><span class="pre">darks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exposure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.darks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.darks" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">darks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exposure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.darks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.darks" title="Link to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>Generator to get the data and/or header of the files of the raw dark frames</dt><dd><p>for a specific exposure.</p>
 </dd>
@@ -176,6 +209,35 @@ If you want only the filenames address the attribute directly.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.file_data">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">file_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filelist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.file_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.file_data" title="Link to this definition"></a></dt>
+<dd><p>generator to get the data and/or header of the files in the provided list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filelist</strong> (<em>list</em>) – list of files to iterate over</p></li>
+<li><p><strong>data</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the data of the file should be returned, defaults to True</p></li>
+<li><p><strong>header</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the header should be returned, defaults to False</p></li>
+<li><p><strong>fname</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the filename should be returned, defaults to False</p></li>
+<li><p><strong>return_kwds</strong> (<em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – additional keywords that should be returned alongside the data/header,
+defaults to None</p></li>
+<li><p><strong>filter_kwds</strong> – additional keywords the returned data should be filtered for from the header</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if both (data and header) are set to False.
+If you want only the filenames address the attribute directly.</p>
+</dd>
+<dt class="field-odd">Yield<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of the desired outputs in the order (data, header, filename, return_kwd 1,…)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.flat_exposures">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">flat_exposures</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#darclight.io.DataCollection.flat_exposures" title="Link to this definition"></a></dt>
@@ -190,9 +252,14 @@ If you want only the filenames address the attribute directly.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.flat_files">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">flat_files</span></span><a class="headerlink" href="#darclight.io.DataCollection.flat_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.flats">
-<span class="sig-name descname"><span class="pre">flats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">used_filter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.flats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.flats" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">flats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">used_filter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.flats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.flats" title="Link to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>Generator to get the data and/or header of the files of the raw flat frames</dt><dd><p>for a specific filter.</p>
 </dd>
@@ -224,30 +291,40 @@ If you want only the filenames address the attribute directly.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="darclight.io.DataCollection.generator">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filelist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.generator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.generator" title="Link to this definition"></a></dt>
-<dd><p>generator to get the data and/or header of the files in the provided list.</p>
+<dt class="sig sig-object py" id="darclight.io.DataCollection.get_files">
+<span class="sig-name descname"><span class="pre">get_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reduced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filters</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.get_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.get_files" title="Link to this definition"></a></dt>
+<dd><p>returns the filenames of the files specified</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reduced</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether the desired files should be reduced or not, defaults to False</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filenames satisfy the filters</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="darclight.io.DataCollection.get_master">
+<span class="sig-name descname"><span class="pre">get_master</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imagetype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.get_master"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.get_master" title="Link to this definition"></a></dt>
+<dd><p>looks for a specific stacked master frame</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filelist</strong> (<em>list</em>) – list of files to iterate over</p></li>
-<li><p><strong>data</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the data of the file should be returned, defaults to True</p></li>
-<li><p><strong>header</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the header should be returned, defaults to False</p></li>
-<li><p><strong>fname</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the filename should be returned, defaults to False</p></li>
-<li><p><strong>return_kwds</strong> (<em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – additional keywords that should be returned alongside the data/header,
+<li><p><strong>imagetype</strong> (<em>str</em>) – type of the image to check, use ‘bias’, ‘dark’, ‘flat’ or ‘light’</p></li>
+<li><p><strong>specifier</strong> (<em>int</em><em> | </em><em>str</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – exposure time to look for, if imagetype=’dark’ or
+filter to look for if imagetype=’flat’ or target if imagetype=’light,
 defaults to None</p></li>
-<li><p><strong>keywords</strong> – additional keywords that should be extracted from the header</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – if both (data and header) are set to False.
-If you want only the filenames address the attribute directly.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>data of the required file, None if it does not exist</p>
 </dd>
-<dt class="field-odd">Yield<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple of the desired outputs in the order (data, header, filename, return_kwd 1,…)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -287,7 +364,7 @@ the corresponding exposure time.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darclight.io.DataCollection.lights">
-<span class="sig-name descname"><span class="pre">lights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.lights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.lights" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">lights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.lights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.lights" title="Link to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>Generator to get the data and/or header of the files of the raw light frames</dt><dd><p>for a specific target.</p>
 </dd>
@@ -319,8 +396,8 @@ If you want only the filenames address the attribute directly.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="darclight.io.DataCollection.safe_file">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">safe_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.safe_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.safe_file" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="darclight.io.DataCollection.save_file">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">save_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.save_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.save_file" title="Link to this definition"></a></dt>
 <dd><p>Saves the given data and header with the given filename in the reduced data directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -337,21 +414,15 @@ If you want only the filenames address the attribute directly.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="darclight.io.DataCollection.sort_files">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sort_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.sort_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.sort_files" title="Link to this definition"></a></dt>
-<dd><p>Reads all files from a directory and sorts them in seperate lists based on their header.</p>
+<dt class="sig sig-object py" id="darclight.io.DataCollection.scan">
+<span class="sig-name descname"><span class="pre">scan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.scan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.scan" title="Link to this definition"></a></dt>
+<dd><p>scans the directories from scractch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>str</em><em> | </em><em>Path</em>) – Path to the data</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A list of filenames for bias, dark, flat and light frames,
-the dark frames are a dict with the exposure as key to the filelists,
-the flat frames are a dict with the used filter as key to the filelists,
-the light frames are a dict with the target as key to the filelists.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[list,dict,dict,dict]</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the raw directory should be scaned, defaults to True</p></li>
+<li><p><strong>reduced</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether or not the reduced directory should be scanned, defaults to True</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -368,18 +439,6 @@ the light frames are a dict with the target as key to the filelists.</p>
 <dd class="field-even"><p>list[str]</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="darclight.io.DataCollection.update_raw">
-<span class="sig-name descname"><span class="pre">update_raw</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.update_raw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.update_raw" title="Link to this definition"></a></dt>
-<dd><p>Rereads the raw file directory and recreates the list for each imagetyp.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="darclight.io.DataCollection.update_reduced">
-<span class="sig-name descname"><span class="pre">update_reduced</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darclight/io.html#DataCollection.update_reduced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darclight.io.DataCollection.update_reduced" title="Link to this definition"></a></dt>
-<dd><p>Rereads the reduced file directory and recreates the list for each imagetyp.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -405,7 +464,7 @@ the light frames are a dict with the target as key to the filelists.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="modules.html" class="btn btn-neutral float-left" title="darclight" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="reducer.html" class="btn btn-neutral float-right" title="reducer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="reduction.html" class="btn btn-neutral float-right" title="reducer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

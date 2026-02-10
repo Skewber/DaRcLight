@@ -41,6 +41,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">darclight</a></li>
 </ul>
 
@@ -70,25 +71,41 @@
              
   <h1>Source code for darclight.io</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Module to manage general information like path to data&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">iglob</span>
 <span class="kn">from</span> <span class="nn">fnmatch</span> <span class="kn">import</span> <span class="n">fnmatch</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Tuple</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">COMMON_KEYWORDS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;BIAS&#39;</span><span class="p">:[</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="s1">&#39;zero&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;DARK&#39;</span><span class="p">:[</span><span class="s1">&#39;dark&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;FLAT&#39;</span><span class="p">:[</span><span class="s1">&#39;flat&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;LIGHT&#39;</span><span class="p">:[</span><span class="s1">&#39;light&#39;</span><span class="p">,</span> <span class="s1">&#39;science&#39;</span><span class="p">,</span> <span class="s1">&#39;object&#39;</span><span class="p">]}</span>
+
 
 <div class="viewcode-block" id="DataCollection">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection">[docs]</a>
 <span class="k">class</span> <span class="nc">DataCollection</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that organizes all files in a given directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_path</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reduced_path</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore</span><span class="p">:</span><span class="nb">list</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reduced_path</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ignore</span><span class="p">:</span><span class="nb">list</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filelist</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># ensure that both paths are an Path object</span>
-        <span class="k">if</span> <span class="n">raw_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">raw_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">reduced_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;./reduced&#39;</span><span class="p">)</span>
@@ -98,100 +115,154 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">ignore</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ignore</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_raw</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_reduced</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduced</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DataCollection.sort_files">
-<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.sort_files">[docs]</a>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;DataCollection created&quot;</span><span class="p">)</span>
+
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">sort_files</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">,</span> <span class="n">ignore</span><span class="p">:</span><span class="nb">list</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span><span class="nb">dict</span><span class="p">,</span><span class="nb">dict</span><span class="p">,</span><span class="nb">dict</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads all files from a directory and sorts them in seperate lists based on their header.</span>
+    <span class="k">def</span> <span class="nf">_get_imagetype</span><span class="p">(</span><span class="n">keyword</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">str</span><span class="p">:</span>
+        <span class="n">keyword</span> <span class="o">=</span> <span class="n">keyword</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
-<span class="sd">        :param path: Path to the data</span>
-<span class="sd">        :type path: str | Path</span>
-<span class="sd">        :return: A list of filenames for bias, dark, flat and light frames,</span>
-<span class="sd">                the dark frames are a dict with the exposure as key to the filelists,</span>
-<span class="sd">                the flat frames are a dict with the used filter as key to the filelists,</span>
-<span class="sd">                the light frames are a dict with the target as key to the filelists.</span>
-<span class="sd">        :rtype: Tuple[list,dict,dict,dict]</span>
+        <span class="k">for</span> <span class="n">typ</span><span class="p">,</span> <span class="n">common_kwd</span> <span class="ow">in</span> <span class="n">COMMON_KEYWORDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">kwd</span> <span class="ow">in</span> <span class="n">keyword</span> <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">common_kwd</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="n">typ</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;The keyword &quot;</span><span class="si">%s</span><span class="s1">&quot; could not be matched to any known type. &#39;</span> \
+        <span class="s1">&#39;Check the word or add a value to the &quot;COMMON_KEYWORDS&quot; variable.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_scan_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># recreate the table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;FILENAME&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;DATE-OBS&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;NIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;JD&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span> <span class="s1">&#39;FILTER&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;OBJECT&#39;</span><span class="p">),</span>
+                            <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;U&#39;</span><span class="p">))</span>
+        <span class="c1"># check files</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">iglob</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;/**/*&#39;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">any</span><span class="p">((</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pat</span><span class="p">)</span> <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">))</span> <span class="ow">or</span>
+                <span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;*</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span><span class="si">}</span><span class="s2">*&quot;</span><span class="p">)):</span>
+                <span class="c1"># skip if directory or contains a pattern from the ignore list or is an reduced file</span>
+                <span class="k">continue</span>
+
+            <span class="n">hdr</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="o">.</span><span class="n">add_row</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span>
+                                    <span class="n">file</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_get_imagetype</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IMAGETYP&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">)),</span>
+                                    <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">,</span> <span class="s1">&#39;0000-00-00T00:00:00&#39;</span><span class="p">),</span>
+                                    <span class="s1">&#39;0000-00-00&#39;</span><span class="p">,</span>
+                                    <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;JD&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                                    <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                                    <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                                    <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">_scan_reduced</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;FILENAME&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;DATE&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;NIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;COMBINED&#39;</span><span class="p">),</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;bool&#39;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">iglob</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;/**/*&#39;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">any</span><span class="p">((</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pat</span><span class="p">)</span> <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">))):</span>
+                <span class="k">continue</span>
+
+            <span class="n">hdr</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="o">.</span><span class="n">add_row</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span>
+                                        <span class="n">file</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">_get_imagetype</span><span class="p">(</span><span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;IMAGETYP&#39;</span><span class="p">]),</span>
+                                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;1999-01-01T00:00:00.000&#39;</span><span class="p">),</span>
+                                        <span class="s1">&#39;0000-00-00&#39;</span><span class="p">,</span>
+                                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)))</span>
+
+
+<div class="viewcode-block" id="DataCollection.scan">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.scan">[docs]</a>
+    <span class="k">def</span> <span class="nf">scan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;scans the directories from scractch</span>
+
+<span class="sd">        :param raw: whether or not the raw directory should be scaned, defaults to True</span>
+<span class="sd">        :type raw: bool, optional</span>
+<span class="sd">        :param reduced: whether or not the reduced directory should be scanned, defaults to True</span>
+<span class="sd">        :type reduced: bool, optional</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">ignore</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">ignore</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ignore</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
-                 <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">pat</span><span class="p">)</span> <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">)]</span>
-
-        <span class="n">common_kwds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;bias&#39;</span><span class="p">:[</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="s1">&#39;zero&#39;</span><span class="p">],</span>
-                       <span class="s1">&#39;dark&#39;</span><span class="p">:[</span><span class="s1">&#39;dark&#39;</span><span class="p">],</span>
-                       <span class="s1">&#39;flat&#39;</span><span class="p">:[</span><span class="s1">&#39;flat&#39;</span><span class="p">],</span>
-                       <span class="s1">&#39;light&#39;</span><span class="p">:[</span><span class="s1">&#39;light&#39;</span><span class="p">,</span> <span class="s1">&#39;science&#39;</span><span class="p">,</span> <span class="s1">&#39;object&#39;</span><span class="p">]}</span>
-
-        <span class="c1"># use defaultdicts to reduce the if/elif statements to check if an enty exists</span>
-        <span class="n">bias_files</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">dark_files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-        <span class="n">flat_files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-        <span class="n">light_files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-            <span class="n">header_kwd</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;imagetyp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">kwd</span> <span class="ow">in</span> <span class="n">header_kwd</span> <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">common_kwds</span><span class="p">[</span><span class="s1">&#39;bias&#39;</span><span class="p">]]):</span>
-                <span class="n">bias_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">kwd</span> <span class="ow">in</span> <span class="n">header_kwd</span> <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">common_kwds</span><span class="p">[</span><span class="s1">&#39;dark&#39;</span><span class="p">]):</span>
-                <span class="n">exp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;exposure&#39;</span><span class="p">))</span>
-                <span class="n">dark_files</span><span class="p">[</span><span class="n">exp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">kwd</span> <span class="ow">in</span> <span class="n">header_kwd</span> <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">common_kwds</span><span class="p">[</span><span class="s1">&#39;flat&#39;</span><span class="p">]):</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="c1"># this value migth not exist always</span>
-                    <span class="n">used_filter</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;filter&#39;</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">used_filter</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">flat_files</span><span class="p">[</span><span class="n">used_filter</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">kwd</span> <span class="ow">in</span> <span class="n">header_kwd</span> <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">common_kwds</span><span class="p">[</span><span class="s1">&#39;light&#39;</span><span class="p">]):</span>
-                <span class="n">target</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span>
-                <span class="n">light_files</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-        <span class="c1"># convert to normal dicts since we don&#39;t need a default value outside this function</span>
-        <span class="k">return</span> <span class="n">bias_files</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dark_files</span><span class="p">),</span> <span class="nb">dict</span><span class="p">(</span><span class="n">flat_files</span><span class="p">),</span> <span class="nb">dict</span><span class="p">(</span><span class="n">light_files</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scan_raw</span><span class="p">()</span>
+            <span class="c1"># add value for the night --&gt; avoid wrap over during midnight</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;NIGHT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span>
+                <span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">])</span><span class="o">-</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="n">subfmt</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">))</span>
+            <span class="c1"># sort by time and add unique ID to each file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">))</span>
+            <span class="c1"># group the files by necessary values</span>
+            <span class="c1"># self.raw_files = self.raw_files.group_by([&#39;TYPE&#39;, &#39;NIGHT&#39;, &#39;FILTER&#39;, &#39;EXPOSURE&#39;, &#39;TARGET&#39;])</span>
+        <span class="k">if</span> <span class="n">reduced</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scan_reduced</span><span class="p">()</span>
+            <span class="c1"># only update the data if at least one file is found</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;NIGHT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span>
+                    <span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;DATE&#39;</span><span class="p">])</span><span class="o">-</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="n">subfmt</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="DataCollection.update_raw">
-<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.update_raw">[docs]</a>
-    <span class="k">def</span> <span class="nf">update_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rereads the raw file directory and recreates the list for each imagetyp.</span>
+<div class="viewcode-block" id="DataCollection.add_file">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.add_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span><span class="nb">tuple</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;adds a row to an existing table</span>
+
+<span class="sd">        :param fname: filename to add</span>
+<span class="sd">        :type fname: str | Path</span>
+<span class="sd">        :param reduced: if it should be added to the raw or reduced table, defaults to False</span>
+<span class="sd">        :type reduced: bool, optional</span>
+<span class="sd">        :param row: row informations, depends on raw or reduced what it should contain.</span>
+<span class="sd">                    If None the file will be read and the values are derived automatically, defaults to None</span>
+<span class="sd">        :type row: tuple | None, optional</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">bias</span><span class="p">,</span> <span class="n">darks</span><span class="p">,</span> <span class="n">flats</span><span class="p">,</span> <span class="n">lights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_files</span> <span class="o">=</span> <span class="n">bias</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span> <span class="o">=</span> <span class="n">darks</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span> <span class="o">=</span> <span class="n">flats</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span> <span class="o">=</span> <span class="n">lights</span></div>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span> <span class="k">if</span> <span class="n">reduced</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hdr</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;2000-01-01T00:00:00.000&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reduced</span><span class="p">:</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">fname</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_get_imagetype</span><span class="p">(</span><span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;IMAGETYP&#39;</span><span class="p">]),</span>
+                        <span class="n">date</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">Time</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">-</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="n">subfmt</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">fname</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_get_imagetype</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IMAGETYP&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">)),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">,</span> <span class="s1">&#39;2000-01-01T00:00:00&#39;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="n">Time</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">-</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="n">subfmt</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;JD&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">),</span>
+                        <span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">))</span>
 
-<div class="viewcode-block" id="DataCollection.update_reduced">
-<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.update_reduced">[docs]</a>
-    <span class="k">def</span> <span class="nf">update_reduced</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rereads the reduced file directory and recreates the list for each imagetyp.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">bias</span><span class="p">,</span> <span class="n">darks</span><span class="p">,</span> <span class="n">flats</span><span class="p">,</span> <span class="n">lights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">master_bias_file</span> <span class="o">=</span> <span class="n">bias</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bias</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">frames</span><span class="p">:</span><span class="nb">dict</span><span class="p">,</span> <span class="n">imgtype</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
-            <span class="n">validated</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">frames</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">validated</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">validated</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;More than one master </span><span class="si">{</span><span class="n">imgtype</span><span class="si">}</span><span class="s2"> is detected for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">validated</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">master_dark_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">exp</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">}</span> <span class="o">|</span> <span class="n">validate</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span> <span class="s1">&#39;dark&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">master_flat_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">filt</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">filt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_filters</span><span class="p">}</span> <span class="o">|</span> <span class="n">validate</span><span class="p">(</span><span class="n">flats</span><span class="p">,</span> <span class="s1">&#39;flat&#39;</span><span class="p">)</span>
-        <span class="c1"># skip validation for lights since they are usually stacked seperately</span>
-        <span class="c1"># =&gt; normally more than one</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">master_light_files</span> <span class="o">=</span> <span class="p">{</span><span class="n">tar</span><span class="p">:</span><span class="kc">None</span> <span class="k">for</span> <span class="n">tar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">}</span> <span class="o">|</span> <span class="n">lights</span></div>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.hdu_from_file">
@@ -211,10 +282,10 @@
             <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span></div>
 
 
-<div class="viewcode-block" id="DataCollection.safe_file">
-<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.safe_file">[docs]</a>
+<div class="viewcode-block" id="DataCollection.save_file">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.save_file">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">safe_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="n">fits</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">Header</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">-&gt;</span><span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">save_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="n">fits</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">Header</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">-&gt;</span><span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves the given data and header with the given filename in the reduced data directory.</span>
 
 <span class="sd">        :param filename: Desired name for the file</span>
@@ -226,7 +297,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
         <span class="n">hdul</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">HDUList</span><span class="p">([</span><span class="n">hdu</span><span class="p">])</span>
-        <span class="n">hdul</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="n">hdul</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saved the file &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
@@ -236,7 +308,8 @@
 <span class="sd">        :return: list of filters</span>
 <span class="sd">        :rtype: list[str]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">flats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">({</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">flats</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">]})</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dark_exposures</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
@@ -245,9 +318,10 @@
 <span class="sd">        :return: list of exposure times</span>
 <span class="sd">        :rtype: list[int]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">darks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;DARK&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">darks</span><span class="p">[</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">]})</span>
 
-    <span class="nd">@cached_property</span>
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">flat_exposures</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">,</span><span class="nb">set</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;exposure times for each filter</span>
 
@@ -256,10 +330,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">filt</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-                <span class="n">exp</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;EXPOSURE&quot;</span><span class="p">)</span>
-                <span class="n">result</span><span class="p">[</span><span class="n">filt</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">))</span>
+        <span class="n">flats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">filt</span><span class="p">,</span> <span class="n">exp</span> <span class="ow">in</span> <span class="n">flats</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPOSURE&#39;</span><span class="p">]:</span>
+            <span class="n">result</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">filt</span><span class="p">)]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">))</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -269,7 +342,8 @@
 <span class="sd">        :return: list of targets</span>
 <span class="sd">        :rtype: list[str]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">lights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;LIGHT&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">lights</span><span class="p">[</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">])]</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">light_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">set</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
@@ -282,20 +356,124 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-                <span class="n">header</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">fname</span><span class="p">)</span>
-                <span class="n">filt</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;FILTER&quot;</span><span class="p">)</span>
-                <span class="n">exp</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;EXPOSURE&quot;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">exp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">result</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">filt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">)))</span>
+        <span class="n">lights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;LIGHT&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">exp</span> <span class="ow">in</span> <span class="n">lights</span><span class="p">[</span><span class="s1">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPOSURE&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">exp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">filt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">filt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">)))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Created meta data for lights:</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DataCollection.generator">
-<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.generator">[docs]</a>
+<div class="viewcode-block" id="DataCollection.get_files">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.get_files">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns the filenames of the files specified</span>
+
+<span class="sd">        :param reduced: whether the desired files should be reduced or not, defaults to False</span>
+<span class="sd">        :type reduced: bool, optional</span>
+<span class="sd">        :return: filenames satisfy the filters</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span> <span class="k">if</span> <span class="n">reduced</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">filt</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">table</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">==</span> <span class="n">val</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s1">&#39;FILENAME&#39;</span><span class="p">][</span><span class="n">mask</span><span class="p">])</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="n">files</span>
+        <span class="k">return</span> <span class="n">files</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bias_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;BIAS&#39;</span><span class="p">)</span>
+    
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">dark_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">expo</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;DARK&#39;</span><span class="p">,</span> <span class="n">exposure</span><span class="o">=</span><span class="n">expo</span><span class="p">)</span> <span class="k">for</span> <span class="n">expo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">}</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">flat_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">filt</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;FLAT&#39;</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="n">filt</span><span class="p">)</span> <span class="k">for</span> <span class="n">filt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_filters</span><span class="p">}</span>
+
+<div class="viewcode-block" id="DataCollection.get_master">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.get_master">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_master</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">imagetype</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">specifier</span><span class="p">:</span><span class="nb">int</span><span class="o">|</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">|</span><span class="nb">tuple</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;looks for a specific stacked master frame</span>
+
+<span class="sd">        :param imagetype: type of the image to check, use &#39;bias&#39;, &#39;dark&#39;, &#39;flat&#39; or &#39;light&#39;</span>
+<span class="sd">        :type imagetype: str</span>
+<span class="sd">        :param specifier: exposure time to look for, if imagetype=&#39;dark&#39; or</span>
+<span class="sd">          filter to look for if imagetype=&#39;flat&#39; or target if imagetype=&#39;light,</span>
+<span class="sd">          defaults to None</span>
+<span class="sd">        :type specifier: int | str | None, optional</span>
+<span class="sd">        :return: data of the required file, None if it does not exist</span>
+<span class="sd">        :rtype: np.ndarray | None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;COMBINED&#39;</span><span class="p">])</span>
+        <span class="k">match</span> <span class="n">imagetype</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">case</span> <span class="s1">&#39;bias&#39;</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;BIAS&#39;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">combined</span>
+            <span class="k">case</span> <span class="s1">&#39;dark&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">specifier</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># if no specifier is given any stacked dark will do</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;DARK&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="c1"># ensure that the specifier has the correct type</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">specifier</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;DARK&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">specifier</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The specifier has to be an int or float, &quot;</span><span class="o">+</span>
+                                     <span class="sa">f</span><span class="s2">&quot;you provided </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">specifier</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s1">&#39;flat&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">specifier</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># if no specifier is given any flat will do</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="c1"># ensure that the specifier has the correct type</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">specifier</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">specifier</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The specifier has to be a string, you provided </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">specifier</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s1">&#39;light&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">specifier</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># if no specifier is given any flat will do</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="c1"># ensure that the specifier has the correct type</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">specifier</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;FLAT&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">specifier</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="n">combined</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The specifier has to be a string, you provided </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">specifier</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;You provided an invalid imagetype &#39;</span><span class="si">{</span><span class="n">imagetype</span><span class="si">}</span><span class="s2">&#39;, use &#39;bias&#39;, &#39;dark&#39; or &#39;flat&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">hdr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdu_from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;FILENAME&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="n">header</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># too many matches</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span><span class="p">[</span><span class="s1">&#39;FILENAME&#39;</span><span class="p">][</span><span class="n">mask</span><span class="p">]]</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span><span class="si">}</span><span class="s2"> frames matching (</span><span class="si">{</span><span class="n">files</span><span class="si">}</span><span class="s2">).&quot;</span> <span class="o">+</span>
+                               <span class="s2">&quot;Include a specifier or ensure only one master frame for the given specifier exists.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataCollection.file_data">
+<a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.file_data">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">filelist</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                  <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">file_data</span><span class="p">(</span><span class="n">filelist</span><span class="p">:</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;generator to get the data and/or header of the files in the provided list.</span>
 
 <span class="sd">        :param filelist: list of files to iterate over</span>
@@ -309,12 +487,13 @@
 <span class="sd">        :param return_kwds: additional keywords that should be returned alongside the data/header,</span>
 <span class="sd">                            defaults to None</span>
 <span class="sd">        :type return_kwds: list[str] | None</span>
-<span class="sd">        :param keywords: additional keywords that should be extracted from the header</span>
+<span class="sd">        :param filter_kwds: additional keywords the returned data should be filtered for from the header</span>
 <span class="sd">        :raises ValueError: if both (data and header) are set to False.</span>
 <span class="sd">                            If you want only the filenames address the attribute directly.</span>
 <span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename, return_kwd 1,...)</span>
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: include the possibility to only yield keywords?</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">header</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one of &#39;data&#39; and &#39;header&#39; must be True.&quot;</span> \
                              <span class="sa">f</span><span class="s2">&quot;You provided: data=</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> and header=</span><span class="si">{</span><span class="n">header</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
@@ -323,9 +502,9 @@
         <span class="n">kwds</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">filelist</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">if</span> <span class="n">keywords</span> <span class="ow">or</span> <span class="n">return_kwd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">filter_kwds</span> <span class="ow">or</span> <span class="n">return_kwd</span><span class="p">:</span>
                 <span class="n">hdr</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kwd</span><span class="p">)</span> <span class="o">!=</span> <span class="n">val</span> <span class="k">for</span> <span class="n">kwd</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">keywords</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kwd</span><span class="p">)</span> <span class="o">!=</span> <span class="n">val</span> <span class="k">for</span> <span class="n">kwd</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filter_kwds</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
                     <span class="c1"># skip if the keywords do not match</span>
                     <span class="k">continue</span>
                 <span class="k">for</span> <span class="n">kwd</span> <span class="ow">in</span> <span class="n">return_kwd</span><span class="p">:</span>
@@ -336,14 +515,14 @@
             <span class="k">if</span> <span class="n">header</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">if</span> <span class="n">header</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fname</span><span class="p">:</span>
-                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">fname</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span> <span class="k">if</span> <span class="n">fname</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">kwds</span>    <span class="c1"># add the desired keywords to the end</span>
             <span class="k">yield</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="k">else</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.bias">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.bias">[docs]</a>
-    <span class="k">def</span> <span class="nf">bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files in the raw bias frames.</span>
 
 <span class="sd">        :param data: whether or not the data of the file should be returned, defaults to True</span>
@@ -357,13 +536,14 @@
 <span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename)</span>
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">bias_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_files</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">bias_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+        <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;BIAS&#39;</span><span class="p">]</span>
+        <span class="n">bias_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bias</span><span class="p">[</span><span class="s1">&#39;FILENAME&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_data</span><span class="p">(</span><span class="n">bias_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.darks">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.darks">[docs]</a>
-    <span class="k">def</span> <span class="nf">darks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exposure</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">darks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exposure</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw dark frames</span>
 <span class="sd">          for a specific exposure.</span>
 
@@ -384,14 +564,15 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">exposure</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_exposures</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no dark frame for this exposure: </span><span class="si">{</span><span class="n">exposure</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">dark_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dark_files</span><span class="p">[</span><span class="n">exposure</span><span class="p">]]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">dark_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+        <span class="n">darks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;DARK&#39;</span><span class="p">]</span>
+        <span class="n">dark_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">darks</span><span class="p">[</span><span class="s1">&#39;FILENAME&#39;</span><span class="p">][</span><span class="n">darks</span><span class="p">[</span><span class="s1">&#39;EXPOSURE&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">exposure</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_data</span><span class="p">(</span><span class="n">dark_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.flats">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.flats">[docs]</a>
     <span class="k">def</span> <span class="nf">flats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">used_filter</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-              <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+              <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw flat frames</span>
 <span class="sd">          for a specific filter.</span>
 
@@ -412,14 +593,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">used_filter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_filters</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no flat frame for this filter: </span><span class="si">{</span><span class="n">used_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">flat_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span><span class="o">/</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_files</span><span class="p">[</span><span class="n">used_filter</span><span class="p">]]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">flat_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+        <span class="n">flat_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;FLAT&#39;</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="n">used_filter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_data</span><span class="p">(</span><span class="n">flat_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollection.lights">
 <a class="viewcode-back" href="../../io.html#darclight.io.DataCollection.lights">[docs]</a>
     <span class="k">def</span> <span class="nf">lights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-               <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
+               <span class="n">return_kwds</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">|</span><span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reduced</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">Generator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator to get the data and/or header of the files of the raw light frames</span>
 <span class="sd">          for a specific target.</span>
 
@@ -438,11 +619,11 @@
 <span class="sd">        :yield: tuple of the desired outputs in the order (data, header, filename)</span>
 <span class="sd">        :rtype: Tuple</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduced_files</span> <span class="k">if</span> <span class="n">reduced</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_files</span>
         <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no light frame for the given target: </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduced_path</span> <span class="k">if</span> <span class="n">reduced</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span>
-        <span class="n">light_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">path</span><span class="o">/</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">light_files</span><span class="p">[</span><span class="n">target</span><span class="p">]]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">light_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></div>
+        <span class="n">light_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="n">reduced</span><span class="o">=</span><span class="n">reduced</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;LIGHT&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_data</span><span class="p">(</span><span class="n">light_files</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">return_kwds</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_kwds</span><span class="p">)</span></div>
 </div>
 
 </pre></div>
